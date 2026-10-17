@@ -1,0 +1,10 @@
+[package]
+name = "kdbx"
+version = "0.1.0"
+edition = "2021"
+description = "First-pass KeePass KDBX parser for KeePass-Nexus"
+license = "MIT"
+
+[dependencies]
+roxmltree = "0.19"
+thiserror = "1.0"
