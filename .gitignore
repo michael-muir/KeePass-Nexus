@@ -23,6 +23,7 @@ generated_plugin_registrant.dart
 target/
 Cargo.lock
 !rust_core/kdbx/Cargo.lock
+!apps/desktop_flutter/rust/Cargo.lock
 
 # Keep Cargo.lock only for applications
 # Remove above line if this repository is an application

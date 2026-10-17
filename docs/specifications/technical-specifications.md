@@ -73,7 +73,7 @@ flowchart LR
   - database key derivation
   - AES/ChaCha20 encryption
   - secure memory handling
-- Exposed to Flutter through FFI or a platform boundary
+- Exposed to Flutter through `flutter_rust_bridge`
 
 #### Layer 4: Platform & Storage Layer
 - Local file access
@@ -232,6 +232,20 @@ flowchart LR
 - Automated checks cover opening reference KDBX 3.1 and KDBX 4/4.1 fixtures (AES-KDF, Argon2, Argon2id, AES, and ChaCha20), re-encoding a reference KDBX 4.1 database, encrypted round-trip, wrong-password rejection, and tamper rejection. KeePassXC application-level validation is still required; self-round-trip coverage alone does not establish interoperability.
 - The selected dependency requires Rust 1.89 or newer.
 - Keep the exact dependency version and Cargo lockfile under review for security updates and reproducible builds.
+
+### 6.6 Database CRUD API
+- `KdbxDatabase` provides checked create, read, update, and delete operations for groups and entries, including listing direct child IDs.
+- Group deletion removes all descendant groups and entries; deleting the root group is rejected. Missing group and entry IDs return explicit errors.
+- Entry updates use the underlying history-tracking API, preserving the previous entry state. Mutations are in-memory until encrypted `save_kdbx4` is called.
+- CRUD operations use the same parsed database object model and KDBX serialization path, preserving KDBX compatibility and protected-value handling. Callers should use protected-value setters for secrets.
+- The facade exposes the underlying `Database` for advanced KDBX features that are not represented by CRUD helpers. KDBX 4 writer maturity caveats in §6.5 still apply.
+
+### 6.7 Windows Flutter Client
+- The first desktop client lives in `apps/desktop_flutter`; Flutter provides the login/unlock, database browser, entry editor, search, and settings screens.
+- The app calls the Rust engine through `flutter_rust_bridge`; KDBX bytes are read from and written to the selected local database file. The UI never implements KDBX cryptography.
+- Entry lists omit passwords; a password is fetched from Rust only for the selected entry details/editor and is masked by default. Password updates are written as protected KDBX fields.
+- Master-password and key-file combinations are supported during unlock. Settings are local to the Windows app; inactivity auto-lock is applied while the vault workspace is active.
+- KDBX 4 save limitations documented in §6.5 apply to files created or modified by the client.
 
 ---
 
