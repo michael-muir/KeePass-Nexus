@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:keeppass_nexus/src/rust/api.dart';
+import 'package:keeppass_nexus/src/screens/password_generator_dialog.dart';
 
 class EntryEditorDialog extends StatefulWidget {
   const EntryEditorDialog({this.initial, super.key});
@@ -52,6 +53,16 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
     );
   }
 
+  Future<void> _generatePassword() async {
+    final password = await showDialog<String>(
+      context: context,
+      builder: (context) => const PasswordGeneratorDialog(),
+    );
+    if (password != null && mounted) {
+      setState(() => _password.text = password);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final editing = widget.initial != null;
@@ -91,16 +102,30 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
                   decoration: InputDecoration(
                     labelText: 'Password',
                     prefixIcon: const Icon(Icons.key_outlined),
-                    suffixIcon: IconButton(
-                      tooltip:
-                          _showPassword ? 'Hide password' : 'Show password',
-                      onPressed: () =>
-                          setState(() => _showPassword = !_showPassword),
-                      icon: Icon(
-                        _showPassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                      ),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'Generate password',
+                          onPressed: _generatePassword,
+                          icon: const Icon(Icons.auto_awesome_outlined),
+                        ),
+                        IconButton(
+                          tooltip:
+                              _showPassword ? 'Hide password' : 'Show password',
+                          onPressed: () =>
+                              setState(() => _showPassword = !_showPassword),
+                          icon: Icon(
+                            _showPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                        ),
+                      ],
+                    ),
+                    suffixIconConstraints: const BoxConstraints(
+                      minWidth: 96,
+                      minHeight: 48,
                     ),
                   ),
                 ),

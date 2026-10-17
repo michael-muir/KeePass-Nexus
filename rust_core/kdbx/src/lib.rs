@@ -264,6 +264,22 @@ impl KdbxDatabase {
         Ok(())
     }
 
+    /// Moves an entry to a different parent group.
+    pub fn move_entry(&mut self, id: EntryId, new_parent_id: GroupId) -> Result<(), VaultError> {
+        if self.database.group(new_parent_id).is_none() {
+            return Err(VaultError::GroupNotFound(new_parent_id));
+        }
+
+        let mut entry = self
+            .database
+            .entry_mut(id)
+            .ok_or(VaultError::EntryNotFound(id))?;
+        entry
+            .move_to(new_parent_id)
+            .map_err(|_| VaultError::GroupNotFound(new_parent_id))?;
+        Ok(())
+    }
+
     /// Deletes an entry, including its attachments.
     pub fn delete_entry(&mut self, id: EntryId) -> Result<(), VaultError> {
         let entry = self

@@ -144,6 +144,16 @@ bool Win32Window::Create(const std::wstring& title,
     return false;
   }
 
+  constexpr DWORD kExcludeFromCapture = 0x00000011;
+  if (!SetWindowDisplayAffinity(window, kExcludeFromCapture)) {
+    const auto error = GetLastError();
+    const std::wstring message =
+        L"KeePass Nexus could not enable Windows screen-capture exclusion. "
+        L"Windows error: " +
+        std::to_wstring(error) + L".\n";
+    OutputDebugStringW(message.c_str());
+  }
+
   UpdateTheme(window);
 
   return OnCreate();

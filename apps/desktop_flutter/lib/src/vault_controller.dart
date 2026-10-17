@@ -93,6 +93,16 @@ class VaultController extends ChangeNotifier {
     await _refresh();
   }
 
+  Future<void> moveEntry(String id, String groupId) async {
+    await rust_api.moveEntry(
+      session: _requireSession(),
+      id: id,
+      groupId: groupId,
+    );
+    selectedEntryId = null;
+    await _refresh();
+  }
+
   Future<void> deleteEntry(String id) async {
     await rust_api.deleteEntry(session: _requireSession(), id: id);
     selectedEntryId = null;
