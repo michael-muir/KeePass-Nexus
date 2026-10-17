@@ -712,6 +712,8 @@ impl SseDecode for crate::api::EntryDetails {
         let mut var_password = <String>::sse_decode(deserializer);
         let mut var_url = <String>::sse_decode(deserializer);
         let mut var_notes = <String>::sse_decode(deserializer);
+        let mut var_iconId = <Option<u32>>::sse_decode(deserializer);
+        let mut var_iconData = <Vec<u8>>::sse_decode(deserializer);
         return crate::api::EntryDetails {
             id: var_id,
             group_id: var_groupId,
@@ -720,6 +722,8 @@ impl SseDecode for crate::api::EntryDetails {
             password: var_password,
             url: var_url,
             notes: var_notes,
+            icon_id: var_iconId,
+            icon_data: var_iconData,
         };
     }
 }
@@ -732,12 +736,16 @@ impl SseDecode for crate::api::EntryInput {
         let mut var_password = <String>::sse_decode(deserializer);
         let mut var_url = <String>::sse_decode(deserializer);
         let mut var_notes = <String>::sse_decode(deserializer);
+        let mut var_iconId = <Option<u32>>::sse_decode(deserializer);
+        let mut var_iconData = <Vec<u8>>::sse_decode(deserializer);
         return crate::api::EntryInput {
             title: var_title,
             username: var_username,
             password: var_password,
             url: var_url,
             notes: var_notes,
+            icon_id: var_iconId,
+            icon_data: var_iconData,
         };
     }
 }
@@ -751,6 +759,8 @@ impl SseDecode for crate::api::EntrySummary {
         let mut var_username = <String>::sse_decode(deserializer);
         let mut var_url = <String>::sse_decode(deserializer);
         let mut var_notes = <String>::sse_decode(deserializer);
+        let mut var_iconId = <Option<u32>>::sse_decode(deserializer);
+        let mut var_iconData = <Vec<u8>>::sse_decode(deserializer);
         return crate::api::EntrySummary {
             id: var_id,
             group_id: var_groupId,
@@ -758,6 +768,8 @@ impl SseDecode for crate::api::EntrySummary {
             username: var_username,
             url: var_url,
             notes: var_notes,
+            icon_id: var_iconId,
+            icon_data: var_iconData,
         };
     }
 }
@@ -825,6 +837,17 @@ impl SseDecode for Option<String> {
     }
 }
 
+impl SseDecode for Option<u32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<u32>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<Vec<u8>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -833,6 +856,13 @@ impl SseDecode for Option<Vec<u8>> {
         } else {
             return None;
         }
+    }
+}
+
+impl SseDecode for u32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u32::<NativeEndian>().unwrap()
     }
 }
 
@@ -889,18 +919,18 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        3 => wire__crate__api__create_entry_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__create_group_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__create_vault_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__delete_entry_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__mark_vault_saved_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__move_entry_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__open_vault_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__read_entry_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__save_vault_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__search_entries_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__update_entry_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__vault_snapshot_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__create_entry_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__create_group_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__create_vault_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__delete_entry_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__mark_vault_saved_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__move_entry_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__open_vault_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__read_entry_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__save_vault_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__search_entries_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__update_entry_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__vault_snapshot_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -945,6 +975,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::EntryDetails {
             self.password.into_into_dart().into_dart(),
             self.url.into_into_dart().into_dart(),
             self.notes.into_into_dart().into_dart(),
+            self.icon_id.into_into_dart().into_dart(),
+            self.icon_data.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -964,6 +996,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::EntryInput {
             self.password.into_into_dart().into_dart(),
             self.url.into_into_dart().into_dart(),
             self.notes.into_into_dart().into_dart(),
+            self.icon_id.into_into_dart().into_dart(),
+            self.icon_data.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -984,6 +1018,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::EntrySummary {
             self.username.into_into_dart().into_dart(),
             self.url.into_into_dart().into_dart(),
             self.notes.into_into_dart().into_dart(),
+            self.icon_id.into_into_dart().into_dart(),
+            self.icon_data.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -1074,6 +1110,8 @@ impl SseEncode for crate::api::EntryDetails {
         <String>::sse_encode(self.password, serializer);
         <String>::sse_encode(self.url, serializer);
         <String>::sse_encode(self.notes, serializer);
+        <Option<u32>>::sse_encode(self.icon_id, serializer);
+        <Vec<u8>>::sse_encode(self.icon_data, serializer);
     }
 }
 
@@ -1085,6 +1123,8 @@ impl SseEncode for crate::api::EntryInput {
         <String>::sse_encode(self.password, serializer);
         <String>::sse_encode(self.url, serializer);
         <String>::sse_encode(self.notes, serializer);
+        <Option<u32>>::sse_encode(self.icon_id, serializer);
+        <Vec<u8>>::sse_encode(self.icon_data, serializer);
     }
 }
 
@@ -1097,6 +1137,8 @@ impl SseEncode for crate::api::EntrySummary {
         <String>::sse_encode(self.username, serializer);
         <String>::sse_encode(self.url, serializer);
         <String>::sse_encode(self.notes, serializer);
+        <Option<u32>>::sse_encode(self.icon_id, serializer);
+        <Vec<u8>>::sse_encode(self.icon_data, serializer);
     }
 }
 
@@ -1150,6 +1192,16 @@ impl SseEncode for Option<String> {
     }
 }
 
+impl SseEncode for Option<u32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <u32>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<Vec<u8>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -1157,6 +1209,13 @@ impl SseEncode for Option<Vec<u8>> {
         if let Some(value) = self {
             <Vec<u8>>::sse_encode(value, serializer);
         }
+    }
+}
+
+impl SseEncode for u32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u32::<NativeEndian>(self).unwrap();
     }
 }
 

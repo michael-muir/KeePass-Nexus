@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:keeppass_nexus/src/entry_icons.dart';
 import 'package:keeppass_nexus/src/rust/api.dart' as rust_api;
 import 'package:keeppass_nexus/src/screens/entry_editor_dialog.dart';
 import 'package:keeppass_nexus/src/screens/settings_screen.dart';
@@ -701,11 +703,11 @@ class _EntryBrowser extends StatelessWidget {
                                             .colorScheme.secondaryContainer,
                                         borderRadius: BorderRadius.circular(11),
                                       ),
-                                      child: Icon(
-                                        Icons.key_outlined,
-                                        size: 19,
-                                        color: theme
-                                            .colorScheme.onSecondaryContainer,
+                                      child: _entryIcon(
+                                        context,
+                                        iconData: entry.iconData,
+                                        iconId: entry.iconId,
+                                        size: 21,
                                       ),
                                     ),
                                     const SizedBox(width: 14),
@@ -831,6 +833,13 @@ class _EntryDetailsPanelState extends State<_EntryDetailsPanel> {
           children: [
             Row(
               children: [
+                _entryIcon(
+                  context,
+                  iconData: details.iconData,
+                  iconId: details.iconId,
+                  size: 27,
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     details.title.isEmpty ? 'Untitled' : details.title,
@@ -884,6 +893,35 @@ class _EntryDetailsPanelState extends State<_EntryDetailsPanel> {
       },
     );
   }
+}
+
+Widget _entryIcon(
+  BuildContext context, {
+  required List<int> iconData,
+  required int? iconId,
+  required double size,
+}) {
+  final theme = Theme.of(context);
+  if (iconData.isNotEmpty) {
+    return Image.memory(
+      Uint8List.fromList(iconData),
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      cacheWidth: 128,
+      cacheHeight: 128,
+      errorBuilder: (_, __, ___) => Icon(
+        entryIconPreset(iconId).icon,
+        size: size,
+        color: theme.colorScheme.onSecondaryContainer,
+      ),
+    );
+  }
+  return Icon(
+    entryIconPreset(iconId).icon,
+    size: size,
+    color: theme.colorScheme.onSecondaryContainer,
+  );
 }
 
 class _DetailField extends StatelessWidget {

@@ -247,6 +247,12 @@ flowchart LR
 - Master-password and key-file combinations are supported during unlock. Settings are local to the Windows app; inactivity auto-lock is applied while the vault workspace is active.
 - KDBX 4 save limitations documented in §6.5 apply to files created or modified by the client.
 
+### 6.8 Entry Icons
+- Entry icons are stored using native KDBX icon metadata: the standard KeePass built-in icon index or a custom icon image embedded in the database.
+- The entry editor provides a curated set of built-in icons, custom image upload, and favicon download from the URL's origin, trying `/favicon.ico`, `/favicon.png`, and `/apple-touch-icon.png`. Downloaded and uploaded images are normalized to PNG before saving.
+- Custom image inputs are limited to 1 MiB and normalized to a maximum 256-by-256 image. The Rust bridge independently enforces the KDBX custom-icon byte limit and validates built-in icon IDs.
+- Entry summaries and details expose icon metadata to Flutter for rendering in the entry list and details pane. No app-specific icon data is stored outside the KDBX database.
+
 ---
 
 ## 7. Security Requirements
