@@ -223,6 +223,16 @@ flowchart LR
 - SHA-256 support
 - Secure key derivation logic
 
+### 6.5 Initial Rust Engine
+- `rust_core/kdbx` uses the MIT-licensed `keepass` Rust crate, pinned to version 0.15.2.
+- The library supplies KDBX 3/4 parsing, KDF/key-file handling, authenticated decryption, protected values, and the database object model.
+- The project facade exposes database open/save operations and the underlying typed model; cryptographic primitives are not reimplemented in application code.
+- Before derivation, the facade limits file-supplied KDF work by default: Argon2 memory to 256 MiB, iterations to 50, memory-times-iterations to 4 GiB-byte-passes, parallelism to 4 lanes, and AES-KDF to 100 million rounds. `open_with_kdf_limits` allows callers to override these limits for trusted files.
+- The dependency describes KDBX 4 writing as experimental. Do not consider writing production-ready until KeePass and KeePassXC fixture interoperability, fuzzing, and independent security review are complete.
+- Automated checks cover opening reference KDBX 3.1 and KDBX 4/4.1 fixtures (AES-KDF, Argon2, Argon2id, AES, and ChaCha20), re-encoding a reference KDBX 4.1 database, encrypted round-trip, wrong-password rejection, and tamper rejection. KeePassXC application-level validation is still required; self-round-trip coverage alone does not establish interoperability.
+- The selected dependency requires Rust 1.89 or newer.
+- Keep the exact dependency version and Cargo lockfile under review for security updates and reproducible builds.
+
 ---
 
 ## 7. Security Requirements
@@ -326,11 +336,13 @@ Deliverables:
 - flutter_secure_storage
 
 ### Rust
-- argon2
-- aes-gcm
-- chacha20poly1305
+- keepass (KDBX parsing and writing)
 - serde
-- tokio
+
+### KDBX References
+- [KeePass KDBX 4.1 file format specification](https://keepass.info/help/kb/kdbx.html)
+- [KeePassXC KDBX 4 reader and writer](https://github.com/keepassxreboot/keepassxc/tree/develop/src/format)
+- [keepass-rs crate documentation](https://docs.rs/keepass/latest/keepass/)
 
 ---
 
