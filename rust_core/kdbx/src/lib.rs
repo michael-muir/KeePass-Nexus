@@ -13,7 +13,8 @@ pub use keepass::config::{
 };
 pub use keepass::db::{
     fields, Attachment, AttachmentMut, Database, DatabaseFormatError, DatabaseOpenError,
-    DatabaseSaveError, Entry, EntryMut, Group, GroupMut, Value,
+    DatabaseSaveError, Entry, EntryId, EntryMut, EntryRef, EntryTrack, Group, GroupId, GroupMut,
+    GroupRef, GroupTrack, Value,
 };
 pub use keepass::DatabaseKey;
 
@@ -88,6 +89,202 @@ pub enum KdbxError {
 }
 
 pub type KdbxResult<T> = Result<T, KdbxError>;
+
+/// CRUD errors for groups and entries in an open KeePass database.
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum VaultError {
+    #[error("group with ID {0} was not found")]
+    GroupNotFound(GroupId),
+
+    #[error("entry with ID {0} was not found")]
+    EntryNotFound(EntryId),
+
+    #[error("the root group cannot be deleted")]
+    CannotDeleteRoot,
+}
+
+/// An open KeePass database with checked entry and group CRUD operations.
+///
+/// Mutations are held in memory until [`save_kdbx4`] is called. Existing
+/// `Database` APIs remain available through [`database`] and [`database_mut`]
+/// for operations outside this CRUD facade.
+///
+/// [`database`]: Self::database
+/// [`database_mut`]: Self::database_mut
+pub struct KdbxDatabase {
+    database: Database,
+}
+
+impl KdbxDatabase {
+    /// Creates a new, empty KeePass database.
+    pub fn new() -> Self {
+        Self {
+            database: Database::new(),
+        }
+    }
+
+    /// Wraps an already-open database.
+    pub fn from_database(database: Database) -> Self {
+        Self { database }
+    }
+
+    /// Opens a database using the default KDF resource limits.
+    pub fn open(bytes: &[u8], key: DatabaseKey) -> KdbxResult<Self> {
+        Ok(Self::from_database(open(bytes, key)?))
+    }
+
+    /// Opens a database with caller-selected KDF resource limits.
+    pub fn open_with_kdf_limits(
+        bytes: &[u8],
+        key: DatabaseKey,
+        limits: KdfLimits,
+    ) -> KdbxResult<Self> {
+        Ok(Self::from_database(open_with_kdf_limits(
+            bytes, key, limits,
+        )?))
+    }
+
+    /// Returns an immutable reference to the underlying database.
+    pub fn database(&self) -> &Database {
+        &self.database
+    }
+
+    /// Returns a mutable reference to the underlying database.
+    ///
+    /// Use the CRUD methods when you want missing-ID validation and automatic
+    /// edit history tracking.
+    pub fn database_mut(&mut self) -> &mut Database {
+        &mut self.database
+    }
+
+    /// Consumes this facade and returns the underlying database.
+    pub fn into_database(self) -> Database {
+        self.database
+    }
+
+    /// Reads a group by ID.
+    pub fn read_group(&self, id: GroupId) -> Result<GroupRef<'_>, VaultError> {
+        self.database.group(id).ok_or(VaultError::GroupNotFound(id))
+    }
+
+    /// Returns the IDs of the direct child groups under `parent_id`.
+    pub fn list_groups(&self, parent_id: GroupId) -> Result<Vec<GroupId>, VaultError> {
+        let group = self.read_group(parent_id)?;
+        Ok(group.group_ids().collect())
+    }
+
+    /// Creates a group under `parent_id`, or under the root when it is `None`.
+    ///
+    /// The callback can initialize group metadata and returns the new group ID.
+    pub fn create_group(
+        &mut self,
+        parent_id: Option<GroupId>,
+        configure: impl FnOnce(&mut GroupMut<'_>),
+    ) -> Result<GroupId, VaultError> {
+        let parent_id = parent_id.unwrap_or_else(|| self.database.root().id());
+        let mut parent = self
+            .database
+            .group_mut(parent_id)
+            .ok_or(VaultError::GroupNotFound(parent_id))?;
+        let mut group = parent.add_group();
+        let id = group.id();
+        configure(&mut group);
+        Ok(id)
+    }
+
+    /// Updates a group and records the change in its modification time.
+    pub fn update_group(
+        &mut self,
+        id: GroupId,
+        update: impl FnOnce(&mut GroupTrack<'_>),
+    ) -> Result<(), VaultError> {
+        let mut group = self
+            .database
+            .group_mut(id)
+            .ok_or(VaultError::GroupNotFound(id))?;
+        group.edit_tracking(update);
+        Ok(())
+    }
+
+    /// Deletes a group and all of its descendant groups and entries.
+    ///
+    /// The root group is protected and cannot be deleted.
+    pub fn delete_group(&mut self, id: GroupId) -> Result<(), VaultError> {
+        let mut group = self
+            .database
+            .group_mut(id)
+            .ok_or(VaultError::GroupNotFound(id))?;
+        group
+            .track_changes()
+            .remove()
+            .map_err(|_| VaultError::CannotDeleteRoot)
+    }
+
+    /// Reads an entry by ID.
+    pub fn read_entry(&self, id: EntryId) -> Result<EntryRef<'_>, VaultError> {
+        self.database.entry(id).ok_or(VaultError::EntryNotFound(id))
+    }
+
+    /// Returns the IDs of the entries directly under `group_id`.
+    pub fn list_entries(&self, group_id: GroupId) -> Result<Vec<EntryId>, VaultError> {
+        let group = self.read_group(group_id)?;
+        Ok(group.entry_ids().collect())
+    }
+
+    /// Creates an entry in a group and returns its new ID.
+    ///
+    /// Use the entry's protected-value setters (for example,
+    /// `set_protected(fields::PASSWORD, value)`) for secrets.
+    pub fn create_entry(
+        &mut self,
+        group_id: GroupId,
+        configure: impl FnOnce(&mut EntryMut<'_>),
+    ) -> Result<EntryId, VaultError> {
+        let mut group = self
+            .database
+            .group_mut(group_id)
+            .ok_or(VaultError::GroupNotFound(group_id))?;
+        let mut entry = group.add_entry();
+        let id = entry.id();
+        configure(&mut entry);
+        Ok(id)
+    }
+
+    /// Updates an entry and preserves its previous state in the entry history.
+    pub fn update_entry(
+        &mut self,
+        id: EntryId,
+        update: impl FnOnce(&mut EntryTrack<'_>),
+    ) -> Result<(), VaultError> {
+        let mut entry = self
+            .database
+            .entry_mut(id)
+            .ok_or(VaultError::EntryNotFound(id))?;
+        entry.edit_tracking(update);
+        Ok(())
+    }
+
+    /// Deletes an entry, including its attachments.
+    pub fn delete_entry(&mut self, id: EntryId) -> Result<(), VaultError> {
+        let entry = self
+            .database
+            .entry_mut(id)
+            .ok_or(VaultError::EntryNotFound(id))?;
+        entry.remove();
+        Ok(())
+    }
+
+    /// Serializes and encrypts this database as KDBX 4.
+    pub fn save_kdbx4(&self, key: DatabaseKey, destination: &mut dyn Write) -> KdbxResult<()> {
+        save_kdbx4(&self.database, key, destination)
+    }
+}
+
+impl Default for KdbxDatabase {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// Opens and decrypts a KeePass database from its KDBX bytes.
 ///
@@ -392,6 +589,113 @@ mod tests {
         entry.set_protected(fields::PASSWORD, "secret-value");
 
         database
+    }
+
+    #[test]
+    fn vault_crud_tracks_entry_history_and_preserves_protected_fields() {
+        let mut vault = KdbxDatabase::new();
+        let root_id = vault.database().root().id();
+        let group_id = vault
+            .create_group(Some(root_id), |group| group.name = "Personal".to_string())
+            .unwrap();
+        vault
+            .update_group(group_id, |group| {
+                group.name = "Personal Updated".to_string()
+            })
+            .unwrap();
+        let entry_id = vault
+            .create_entry(group_id, |entry| {
+                entry.set_unprotected(fields::TITLE, "Email");
+                entry.set_protected(fields::PASSWORD, "old-secret");
+            })
+            .unwrap();
+
+        vault
+            .update_entry(entry_id, |entry| {
+                entry.set_protected(fields::PASSWORD, "new-secret");
+            })
+            .unwrap();
+
+        let entry = vault.read_entry(entry_id).unwrap();
+        assert_eq!(entry.get(fields::PASSWORD), Some("new-secret"));
+        assert!(matches!(
+            entry.fields.get(fields::PASSWORD),
+            Some(Value::Protected(_))
+        ));
+        assert_eq!(
+            entry.historical(0).unwrap().get(fields::PASSWORD),
+            Some("old-secret")
+        );
+        assert_eq!(vault.list_groups(root_id).unwrap(), vec![group_id]);
+        assert_eq!(vault.list_entries(group_id).unwrap(), vec![entry_id]);
+        assert_eq!(vault.read_group(group_id).unwrap().name, "Personal Updated");
+
+        let mut encoded = Vec::new();
+        vault.save_kdbx4(test_key(), &mut encoded).unwrap();
+        let reopened = KdbxDatabase::open(&encoded, test_key()).unwrap();
+        assert_eq!(
+            reopened.read_entry(entry_id).unwrap().get(fields::PASSWORD),
+            Some("new-secret")
+        );
+
+        vault.delete_entry(entry_id).unwrap();
+        assert!(matches!(
+            vault.read_entry(entry_id),
+            Err(VaultError::EntryNotFound(id)) if id == entry_id
+        ));
+    }
+
+    #[test]
+    fn deleting_a_group_recursively_removes_its_descendants() {
+        let mut vault = KdbxDatabase::new();
+        let root_id = vault.database().root().id();
+        let parent_id = vault
+            .create_group(Some(root_id), |group| group.name = "Parent".to_string())
+            .unwrap();
+        let child_id = vault
+            .create_group(Some(parent_id), |group| group.name = "Child".to_string())
+            .unwrap();
+        let entry_id = vault.create_entry(child_id, |_| {}).unwrap();
+
+        vault.delete_group(parent_id).unwrap();
+
+        assert_eq!(vault.database().num_groups(), 1);
+        assert_eq!(vault.database().num_entries(), 0);
+        assert!(matches!(
+            vault.read_group(child_id),
+            Err(VaultError::GroupNotFound(id)) if id == child_id
+        ));
+        assert!(matches!(
+            vault.read_entry(entry_id),
+            Err(VaultError::EntryNotFound(id)) if id == entry_id
+        ));
+        assert!(matches!(
+            vault.delete_group(root_id),
+            Err(VaultError::CannotDeleteRoot)
+        ));
+    }
+
+    #[test]
+    fn crud_reports_missing_parent_and_update_identifiers() {
+        let mut vault = KdbxDatabase::new();
+        let root_id = vault.database().root().id();
+        let removed_group_id = vault.create_group(Some(root_id), |_| {}).unwrap();
+        vault.delete_group(removed_group_id).unwrap();
+        assert!(matches!(
+            vault.create_entry(removed_group_id, |_| {}),
+            Err(VaultError::GroupNotFound(id)) if id == removed_group_id
+        ));
+
+        let entry_id = vault.create_entry(root_id, |_| {}).unwrap();
+        vault.delete_entry(entry_id).unwrap();
+        assert!(matches!(
+            vault.update_entry(entry_id, |_| {}),
+            Err(VaultError::EntryNotFound(id)) if id == entry_id
+        ));
+        assert!(matches!(
+            vault.update_group(removed_group_id, |_| {}),
+            Err(VaultError::GroupNotFound(id)) if id == removed_group_id
+        ));
     }
 
     #[test]
