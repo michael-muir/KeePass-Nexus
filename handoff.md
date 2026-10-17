@@ -16,11 +16,19 @@ searching, encrypted saving, settings, and inactivity auto-lock.
   that wraps the existing KDBX API.
 - Implemented password and optional key-file unlock, vault creation, database
   snapshots, entry read/search/create/update/delete, and encrypted save.
+- Added checked entry move-to-group support in the Rust KDBX facade and exposed
+  it through the Flutter bridge and vault controller.
+- Added a KeePassXC-inspired password generator to the entry editor, with
+  character and passphrase tabs, configurable character groups, exclusions,
+  secure random generation, entropy/quality feedback, refresh, show/hide, copy,
+  and clipboard clearing.
+- Added best-effort Windows screen-capture exclusion using
+  `SetWindowDisplayAffinity` with `WDA_EXCLUDEFROMCAPTURE`.
 - Added the Windows Flutter runner, Cargokit integration, generated bridge
   bindings, and a Windows-specific bridge generation script.
 - Updated `docs/specifications/technical-specifications.md` with CRUD and
-  Flutter architecture details, and added Windows setup instructions in the
-  app README.
+  Flutter architecture details, and added Windows setup, password generation,
+  and screen-capture protection notes in the app README.
 - Restored the intended Flutter app bootstrap after bridge integration had
   replaced it with a starter sample.
 
@@ -30,6 +38,7 @@ The following checks passed:
 
 - `flutter analyze`
 - `flutter test`
+- `cargo test --quiet` in `rust_core/kdbx`
 - `cargo fmt`
 - `cargo clippy --all-targets -- -D warnings`
 - `cargo test`
@@ -42,6 +51,9 @@ The following checks passed:
   with KeePassXC before relying on the writer for production databases.
 - The current UI work is Windows-first. Android, iOS, macOS, and Linux
   packaging and platform-specific security integrations are not yet validated.
+- Windows screen-capture exclusion is best effort and does not prevent external
+  cameras or guarantee protection from every capture method. Other platforms
+  do not yet have screen-capture protection.
 - Continue with KeePassXC interoperability testing and address any compatibility
   issues before broadening platform support.
 
