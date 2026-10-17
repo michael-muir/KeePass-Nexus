@@ -32,3 +32,12 @@ The open vault supports nested group browsing, entry create/read/update/delete,
 search, encrypted save, theme settings, and inactivity auto-lock. Password
 values are returned to the UI only when opening the selected entry editor or
 details panel and are masked by default.
+
+The entry editor's password field includes a generator with character and
+passphrase modes, entropy feedback, show/hide, refresh, copy, and clipboard
+clear actions. Passwords are generated with Dart's secure random source. The
+Windows runner requests exclusion from supported screen-capture APIs using
+[`SetWindowDisplayAffinity`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowdisplayaffinity);
+Windows documents this as best effort, and it does not prevent external cameras
+or guarantee protection from every capture path. Other platforms do not yet
+have screen-capture protection.

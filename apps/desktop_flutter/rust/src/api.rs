@@ -190,6 +190,21 @@ pub fn update_entry(
     Ok(())
 }
 
+pub fn move_entry(
+    session: &mut VaultSession,
+    id: String,
+    group_id: String,
+) -> Result<(), String> {
+    let id = parse_entry_id(&id)?;
+    let group_id = parse_group_id(&group_id)?;
+    session
+        .database
+        .move_entry(id, group_id)
+        .map_err(|error| error.to_string())?;
+    session.dirty = true;
+    Ok(())
+}
+
 pub fn delete_entry(session: &mut VaultSession, id: String) -> Result<(), String> {
     let id = parse_entry_id(&id)?;
     session
@@ -377,6 +392,11 @@ mod tests {
         let entry = read_entry(&reopened, entry_id.clone()).unwrap();
         assert_eq!(entry.title, "Work email");
         assert_eq!(entry.password, "updated-secret");
+
+        let archive_group_id = create_group(&mut session, root_id, "Archive".to_string()).unwrap();
+        move_entry(&mut session, entry_id.clone(), archive_group_id.clone()).unwrap();
+        assert!(session.database.list_entries(group_id).unwrap().is_empty());
+        assert!(session.database.list_entries(archive_group_id).unwrap().contains(&parse_entry_id(&entry_id).unwrap()));
 
         delete_entry(&mut session, entry_id).unwrap();
         assert_eq!(vault_snapshot(&session).unwrap().entry_count, 0);

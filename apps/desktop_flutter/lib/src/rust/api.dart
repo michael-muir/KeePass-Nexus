@@ -4,52 +4,81 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import 'frb_generated.dart';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `build_group_node`, `build_key`, `entry_summary`, `parse_entry_id`, `parse_group_id`, `set_entry_fields`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 // These functions are ignored (category: IgnoreBecauseNotAllowedOwner): `set_plain`, `set_plain`, `set_secret`, `set_secret`
 
-Future<VaultSession> openVault(
-        {required List<int> bytes, String? password, Uint8List? keyFile}) =>
-    RustLib.instance.api
-        .crateApiOpenVault(bytes: bytes, password: password, keyFile: keyFile);
+Future<VaultSession> openVault({
+  required List<int> bytes,
+  String? password,
+  Uint8List? keyFile,
+}) => RustLib.instance.api.crateApiOpenVault(
+  bytes: bytes,
+  password: password,
+  keyFile: keyFile,
+);
 
-Future<VaultSession> createVault(
-        {required String name, required String password}) =>
-    RustLib.instance.api.crateApiCreateVault(name: name, password: password);
+Future<VaultSession> createVault({
+  required String name,
+  required String password,
+}) => RustLib.instance.api.crateApiCreateVault(name: name, password: password);
 
 Future<VaultSnapshot> vaultSnapshot({required VaultSession session}) =>
     RustLib.instance.api.crateApiVaultSnapshot(session: session);
 
-Future<EntryDetails> readEntry(
-        {required VaultSession session, required String id}) =>
-    RustLib.instance.api.crateApiReadEntry(session: session, id: id);
+Future<EntryDetails> readEntry({
+  required VaultSession session,
+  required String id,
+}) => RustLib.instance.api.crateApiReadEntry(session: session, id: id);
 
-Future<List<EntrySummary>> searchEntries(
-        {required VaultSession session, required String query}) =>
+Future<List<EntrySummary>> searchEntries({
+  required VaultSession session,
+  required String query,
+}) =>
     RustLib.instance.api.crateApiSearchEntries(session: session, query: query);
 
-Future<String> createGroup(
-        {required VaultSession session,
-        required String parentId,
-        required String name}) =>
-    RustLib.instance.api
-        .crateApiCreateGroup(session: session, parentId: parentId, name: name);
+Future<String> createGroup({
+  required VaultSession session,
+  required String parentId,
+  required String name,
+}) => RustLib.instance.api.crateApiCreateGroup(
+  session: session,
+  parentId: parentId,
+  name: name,
+);
 
-Future<String> createEntry(
-        {required VaultSession session,
-        required String groupId,
-        required EntryInput input}) =>
-    RustLib.instance.api
-        .crateApiCreateEntry(session: session, groupId: groupId, input: input);
+Future<String> createEntry({
+  required VaultSession session,
+  required String groupId,
+  required EntryInput input,
+}) => RustLib.instance.api.crateApiCreateEntry(
+  session: session,
+  groupId: groupId,
+  input: input,
+);
 
-Future<void> updateEntry(
-        {required VaultSession session,
-        required String id,
-        required EntryInput input}) =>
-    RustLib.instance.api
-        .crateApiUpdateEntry(session: session, id: id, input: input);
+Future<void> updateEntry({
+  required VaultSession session,
+  required String id,
+  required EntryInput input,
+}) => RustLib.instance.api.crateApiUpdateEntry(
+  session: session,
+  id: id,
+  input: input,
+);
+
+Future<void> moveEntry({
+  required VaultSession session,
+  required String id,
+  required String groupId,
+}) => RustLib.instance.api.crateApiMoveEntry(
+  session: session,
+  id: id,
+  groupId: groupId,
+);
 
 Future<void> deleteEntry({required VaultSession session, required String id}) =>
     RustLib.instance.api.crateApiDeleteEntry(session: session, id: id);
