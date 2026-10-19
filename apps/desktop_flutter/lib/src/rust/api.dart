@@ -4,81 +4,59 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import 'frb_generated.dart';
-
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `build_group_node`, `build_key`, `entry_summary`, `parse_entry_id`, `parse_group_id`, `set_entry_fields`
+// These functions are ignored because they are not marked as `pub`: `build_group_node`, `build_key`, `entry_summary`, `format_expiry`, `parse_entry_id`, `parse_expiry`, `parse_group_id`, `set_entry_fields`, `validate_entry_input`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
-// These functions are ignored (category: IgnoreBecauseNotAllowedOwner): `set_plain`, `set_plain`, `set_secret`, `set_secret`
+// These functions are ignored (category: IgnoreBecauseNotAllowedOwner): `set_entry_metadata`, `set_entry_metadata`, `set_icon`, `set_icon`, `set_plain`, `set_plain`, `set_secret`, `set_secret`
 
-Future<VaultSession> openVault({
-  required List<int> bytes,
-  String? password,
-  Uint8List? keyFile,
-}) => RustLib.instance.api.crateApiOpenVault(
-  bytes: bytes,
-  password: password,
-  keyFile: keyFile,
-);
+Future<VaultSession> openVault(
+        {required List<int> bytes, String? password, Uint8List? keyFile}) =>
+    RustLib.instance.api
+        .crateApiOpenVault(bytes: bytes, password: password, keyFile: keyFile);
 
-Future<VaultSession> createVault({
-  required String name,
-  required String password,
-}) => RustLib.instance.api.crateApiCreateVault(name: name, password: password);
+Future<VaultSession> createVault(
+        {required String name, required String password}) =>
+    RustLib.instance.api.crateApiCreateVault(name: name, password: password);
 
 Future<VaultSnapshot> vaultSnapshot({required VaultSession session}) =>
     RustLib.instance.api.crateApiVaultSnapshot(session: session);
 
-Future<EntryDetails> readEntry({
-  required VaultSession session,
-  required String id,
-}) => RustLib.instance.api.crateApiReadEntry(session: session, id: id);
+Future<EntryDetails> readEntry(
+        {required VaultSession session, required String id}) =>
+    RustLib.instance.api.crateApiReadEntry(session: session, id: id);
 
-Future<List<EntrySummary>> searchEntries({
-  required VaultSession session,
-  required String query,
-}) =>
+Future<List<EntrySummary>> searchEntries(
+        {required VaultSession session, required String query}) =>
     RustLib.instance.api.crateApiSearchEntries(session: session, query: query);
 
-Future<String> createGroup({
-  required VaultSession session,
-  required String parentId,
-  required String name,
-}) => RustLib.instance.api.crateApiCreateGroup(
-  session: session,
-  parentId: parentId,
-  name: name,
-);
+Future<String> createGroup(
+        {required VaultSession session,
+        required String parentId,
+        required String name}) =>
+    RustLib.instance.api
+        .crateApiCreateGroup(session: session, parentId: parentId, name: name);
 
-Future<String> createEntry({
-  required VaultSession session,
-  required String groupId,
-  required EntryInput input,
-}) => RustLib.instance.api.crateApiCreateEntry(
-  session: session,
-  groupId: groupId,
-  input: input,
-);
+Future<String> createEntry(
+        {required VaultSession session,
+        required String groupId,
+        required EntryInput input}) =>
+    RustLib.instance.api
+        .crateApiCreateEntry(session: session, groupId: groupId, input: input);
 
-Future<void> updateEntry({
-  required VaultSession session,
-  required String id,
-  required EntryInput input,
-}) => RustLib.instance.api.crateApiUpdateEntry(
-  session: session,
-  id: id,
-  input: input,
-);
+Future<void> updateEntry(
+        {required VaultSession session,
+        required String id,
+        required EntryInput input}) =>
+    RustLib.instance.api
+        .crateApiUpdateEntry(session: session, id: id, input: input);
 
-Future<void> moveEntry({
-  required VaultSession session,
-  required String id,
-  required String groupId,
-}) => RustLib.instance.api.crateApiMoveEntry(
-  session: session,
-  id: id,
-  groupId: groupId,
-);
+Future<void> moveEntry(
+        {required VaultSession session,
+        required String id,
+        required String groupId}) =>
+    RustLib.instance.api
+        .crateApiMoveEntry(session: session, id: id, groupId: groupId);
 
 Future<void> deleteEntry({required VaultSession session, required String id}) =>
     RustLib.instance.api.crateApiDeleteEntry(session: session, id: id);
@@ -93,6 +71,11 @@ Future<void> markVaultSaved({required VaultSession session}) =>
 abstract class VaultSession implements RustOpaqueInterface {}
 
 abstract class EntryFieldSetter {
+  Future<void> setEntryMetadata(
+      {required List<String> tags, required bool expires, DateTime? expiresAt});
+
+  Future<void> setIcon({int? iconId, required List<int> iconData});
+
   Future<void> setPlain({required String key, required String value});
 
   Future<void> setSecret({required String key, required String value});
@@ -106,6 +89,11 @@ class EntryDetails {
   final String password;
   final String url;
   final String notes;
+  final int? iconId;
+  final Uint8List iconData;
+  final List<String> tags;
+  final bool expires;
+  final String? expiresAt;
 
   const EntryDetails({
     required this.id,
@@ -115,6 +103,11 @@ class EntryDetails {
     required this.password,
     required this.url,
     required this.notes,
+    this.iconId,
+    required this.iconData,
+    required this.tags,
+    required this.expires,
+    this.expiresAt,
   });
 
   @override
@@ -125,7 +118,12 @@ class EntryDetails {
       username.hashCode ^
       password.hashCode ^
       url.hashCode ^
-      notes.hashCode;
+      notes.hashCode ^
+      iconId.hashCode ^
+      iconData.hashCode ^
+      tags.hashCode ^
+      expires.hashCode ^
+      expiresAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -138,7 +136,12 @@ class EntryDetails {
           username == other.username &&
           password == other.password &&
           url == other.url &&
-          notes == other.notes;
+          notes == other.notes &&
+          iconId == other.iconId &&
+          iconData == other.iconData &&
+          tags == other.tags &&
+          expires == other.expires &&
+          expiresAt == other.expiresAt;
 }
 
 class EntryInput {
@@ -147,6 +150,11 @@ class EntryInput {
   final String password;
   final String url;
   final String notes;
+  final int? iconId;
+  final Uint8List iconData;
+  final List<String> tags;
+  final bool expires;
+  final String? expiresAt;
 
   const EntryInput({
     required this.title,
@@ -154,6 +162,11 @@ class EntryInput {
     required this.password,
     required this.url,
     required this.notes,
+    this.iconId,
+    required this.iconData,
+    required this.tags,
+    required this.expires,
+    this.expiresAt,
   });
 
   @override
@@ -162,7 +175,12 @@ class EntryInput {
       username.hashCode ^
       password.hashCode ^
       url.hashCode ^
-      notes.hashCode;
+      notes.hashCode ^
+      iconId.hashCode ^
+      iconData.hashCode ^
+      tags.hashCode ^
+      expires.hashCode ^
+      expiresAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -173,7 +191,12 @@ class EntryInput {
           username == other.username &&
           password == other.password &&
           url == other.url &&
-          notes == other.notes;
+          notes == other.notes &&
+          iconId == other.iconId &&
+          iconData == other.iconData &&
+          tags == other.tags &&
+          expires == other.expires &&
+          expiresAt == other.expiresAt;
 }
 
 class EntrySummary {
@@ -183,6 +206,11 @@ class EntrySummary {
   final String username;
   final String url;
   final String notes;
+  final int? iconId;
+  final Uint8List iconData;
+  final List<String> tags;
+  final bool expires;
+  final String? expiresAt;
 
   const EntrySummary({
     required this.id,
@@ -191,6 +219,11 @@ class EntrySummary {
     required this.username,
     required this.url,
     required this.notes,
+    this.iconId,
+    required this.iconData,
+    required this.tags,
+    required this.expires,
+    this.expiresAt,
   });
 
   @override
@@ -200,7 +233,12 @@ class EntrySummary {
       title.hashCode ^
       username.hashCode ^
       url.hashCode ^
-      notes.hashCode;
+      notes.hashCode ^
+      iconId.hashCode ^
+      iconData.hashCode ^
+      tags.hashCode ^
+      expires.hashCode ^
+      expiresAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -212,7 +250,12 @@ class EntrySummary {
           title == other.title &&
           username == other.username &&
           url == other.url &&
-          notes == other.notes;
+          notes == other.notes &&
+          iconId == other.iconId &&
+          iconData == other.iconData &&
+          tags == other.tags &&
+          expires == other.expires &&
+          expiresAt == other.expiresAt;
 }
 
 class GroupNode {

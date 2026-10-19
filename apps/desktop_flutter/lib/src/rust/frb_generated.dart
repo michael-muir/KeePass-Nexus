@@ -4,14 +4,11 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
-
 import 'dart:async';
 import 'dart:convert';
-
 import 'frb_generated.dart';
 import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
-
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// Main entrypoint of the Rust API
@@ -38,8 +35,12 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 
   /// Initialize flutter_rust_bridge in mock mode.
   /// No libraries for FFI are loaded.
-  static void initMock({required RustLibApi api}) {
-    instance.initMockImpl(api: api);
+  static void initMock({
+    required RustLibApi api,
+  }) {
+    instance.initMockImpl(
+      api: api,
+    );
   }
 
   /// Dispose flutter_rust_bridge
@@ -71,75 +72,60 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
-        stem: 'keeppass_nexus_rust',
-        ioDirectory: 'rust/target/release/',
-        webPrefix: 'pkg/',
-        wasmBindgenName: 'wasm_bindgen',
-      );
+    stem: 'keeppass_nexus_rust',
+    ioDirectory: 'rust/target/release/',
+    webPrefix: 'pkg/',
+    wasmBindgenName: 'wasm_bindgen',
+  );
 }
 
 abstract class RustLibApi extends BaseApi {
-  Future<String> crateApiCreateEntry({
-    required VaultSession session,
-    required String groupId,
-    required EntryInput input,
-  });
+  Future<String> crateApiCreateEntry(
+      {required VaultSession session,
+      required String groupId,
+      required EntryInput input});
 
-  Future<String> crateApiCreateGroup({
-    required VaultSession session,
-    required String parentId,
-    required String name,
-  });
+  Future<String> crateApiCreateGroup(
+      {required VaultSession session,
+      required String parentId,
+      required String name});
 
-  Future<VaultSession> crateApiCreateVault({
-    required String name,
-    required String password,
-  });
+  Future<VaultSession> crateApiCreateVault(
+      {required String name, required String password});
 
-  Future<void> crateApiDeleteEntry({
-    required VaultSession session,
-    required String id,
-  });
+  Future<void> crateApiDeleteEntry(
+      {required VaultSession session, required String id});
 
   Future<void> crateApiMarkVaultSaved({required VaultSession session});
 
-  Future<void> crateApiMoveEntry({
-    required VaultSession session,
-    required String id,
-    required String groupId,
-  });
+  Future<void> crateApiMoveEntry(
+      {required VaultSession session,
+      required String id,
+      required String groupId});
 
-  Future<VaultSession> crateApiOpenVault({
-    required List<int> bytes,
-    String? password,
-    Uint8List? keyFile,
-  });
+  Future<VaultSession> crateApiOpenVault(
+      {required List<int> bytes, String? password, Uint8List? keyFile});
 
-  Future<EntryDetails> crateApiReadEntry({
-    required VaultSession session,
-    required String id,
-  });
+  Future<EntryDetails> crateApiReadEntry(
+      {required VaultSession session, required String id});
 
   Future<Uint8List> crateApiSaveVault({required VaultSession session});
 
-  Future<List<EntrySummary>> crateApiSearchEntries({
-    required VaultSession session,
-    required String query,
-  });
+  Future<List<EntrySummary>> crateApiSearchEntries(
+      {required VaultSession session, required String query});
 
-  Future<void> crateApiUpdateEntry({
-    required VaultSession session,
-    required String id,
-    required EntryInput input,
-  });
+  Future<void> crateApiUpdateEntry(
+      {required VaultSession session,
+      required String id,
+      required EntryInput input});
 
   Future<VaultSnapshot> crateApiVaultSnapshot({required VaultSession session});
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_VaultSession;
+      get rust_arc_increment_strong_count_VaultSession;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_VaultSession;
+      get rust_arc_decrement_strong_count_VaultSession;
 
   CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_VaultSessionPtr;
 }
@@ -153,475 +139,378 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  Future<String> crateApiCreateEntry({
-    required VaultSession session,
-    required String groupId,
-    required EntryInput input,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-            session,
-            serializer,
-          );
-          sse_encode_String(groupId, serializer);
-          sse_encode_box_autoadd_entry_input(input, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 3,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiCreateEntryConstMeta,
-        argValues: [session, groupId, input],
-        apiImpl: this,
+  Future<String> crateApiCreateEntry(
+      {required VaultSession session,
+      required String groupId,
+      required EntryInput input}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+            session, serializer);
+        sse_encode_String(groupId, serializer);
+        sse_encode_box_autoadd_entry_input(input, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 5, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_String,
+        decodeErrorData: sse_decode_String,
       ),
-    );
+      constMeta: kCrateApiCreateEntryConstMeta,
+      argValues: [session, groupId, input],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiCreateEntryConstMeta => const TaskConstMeta(
-    debugName: "create_entry",
-    argNames: ["session", "groupId", "input"],
-  );
+        debugName: "create_entry",
+        argNames: ["session", "groupId", "input"],
+      );
 
   @override
-  Future<String> crateApiCreateGroup({
-    required VaultSession session,
-    required String parentId,
-    required String name,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-            session,
-            serializer,
-          );
-          sse_encode_String(parentId, serializer);
-          sse_encode_String(name, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 4,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiCreateGroupConstMeta,
-        argValues: [session, parentId, name],
-        apiImpl: this,
+  Future<String> crateApiCreateGroup(
+      {required VaultSession session,
+      required String parentId,
+      required String name}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+            session, serializer);
+        sse_encode_String(parentId, serializer);
+        sse_encode_String(name, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 6, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_String,
+        decodeErrorData: sse_decode_String,
       ),
-    );
+      constMeta: kCrateApiCreateGroupConstMeta,
+      argValues: [session, parentId, name],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiCreateGroupConstMeta => const TaskConstMeta(
-    debugName: "create_group",
-    argNames: ["session", "parentId", "name"],
-  );
+        debugName: "create_group",
+        argNames: ["session", "parentId", "name"],
+      );
 
   @override
-  Future<VaultSession> crateApiCreateVault({
-    required String name,
-    required String password,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(name, serializer);
-          sse_encode_String(password, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 5,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiCreateVaultConstMeta,
-        argValues: [name, password],
-        apiImpl: this,
+  Future<VaultSession> crateApiCreateVault(
+      {required String name, required String password}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_String(name, serializer);
+        sse_encode_String(password, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 7, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData:
+            sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiCreateVaultConstMeta,
+      argValues: [name, password],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiCreateVaultConstMeta => const TaskConstMeta(
-    debugName: "create_vault",
-    argNames: ["name", "password"],
-  );
+        debugName: "create_vault",
+        argNames: ["name", "password"],
+      );
 
   @override
-  Future<void> crateApiDeleteEntry({
-    required VaultSession session,
-    required String id,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-            session,
-            serializer,
-          );
-          sse_encode_String(id, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 6,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiDeleteEntryConstMeta,
-        argValues: [session, id],
-        apiImpl: this,
+  Future<void> crateApiDeleteEntry(
+      {required VaultSession session, required String id}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+            session, serializer);
+        sse_encode_String(id, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 8, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_unit,
+        decodeErrorData: sse_decode_String,
       ),
-    );
+      constMeta: kCrateApiDeleteEntryConstMeta,
+      argValues: [session, id],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiDeleteEntryConstMeta => const TaskConstMeta(
-    debugName: "delete_entry",
-    argNames: ["session", "id"],
-  );
+        debugName: "delete_entry",
+        argNames: ["session", "id"],
+      );
 
   @override
   Future<void> crateApiMarkVaultSaved({required VaultSession session}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-            session,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 7,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiMarkVaultSavedConstMeta,
-        argValues: [session],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+            session, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 9, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_unit,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiMarkVaultSavedConstMeta,
+      argValues: [session],
+      apiImpl: this,
+    ));
   }
 
-  TaskConstMeta get kCrateApiMarkVaultSavedConstMeta =>
-      const TaskConstMeta(debugName: "mark_vault_saved", argNames: ["session"]);
+  TaskConstMeta get kCrateApiMarkVaultSavedConstMeta => const TaskConstMeta(
+        debugName: "mark_vault_saved",
+        argNames: ["session"],
+      );
 
   @override
-  Future<void> crateApiMoveEntry({
-    required VaultSession session,
-    required String id,
-    required String groupId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-            session,
-            serializer,
-          );
-          sse_encode_String(id, serializer);
-          sse_encode_String(groupId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 8,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiMoveEntryConstMeta,
-        argValues: [session, id, groupId],
-        apiImpl: this,
+  Future<void> crateApiMoveEntry(
+      {required VaultSession session,
+      required String id,
+      required String groupId}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+            session, serializer);
+        sse_encode_String(id, serializer);
+        sse_encode_String(groupId, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 10, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_unit,
+        decodeErrorData: sse_decode_String,
       ),
-    );
+      constMeta: kCrateApiMoveEntryConstMeta,
+      argValues: [session, id, groupId],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiMoveEntryConstMeta => const TaskConstMeta(
-    debugName: "move_entry",
-    argNames: ["session", "id", "groupId"],
-  );
+        debugName: "move_entry",
+        argNames: ["session", "id", "groupId"],
+      );
 
   @override
-  Future<VaultSession> crateApiOpenVault({
-    required List<int> bytes,
-    String? password,
-    Uint8List? keyFile,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_list_prim_u_8_loose(bytes, serializer);
-          sse_encode_opt_String(password, serializer);
-          sse_encode_opt_list_prim_u_8_strict(keyFile, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 9,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiOpenVaultConstMeta,
-        argValues: [bytes, password, keyFile],
-        apiImpl: this,
+  Future<VaultSession> crateApiOpenVault(
+      {required List<int> bytes, String? password, Uint8List? keyFile}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_list_prim_u_8_loose(bytes, serializer);
+        sse_encode_opt_String(password, serializer);
+        sse_encode_opt_list_prim_u_8_strict(keyFile, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 11, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData:
+            sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession,
+        decodeErrorData: sse_decode_String,
       ),
-    );
+      constMeta: kCrateApiOpenVaultConstMeta,
+      argValues: [bytes, password, keyFile],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiOpenVaultConstMeta => const TaskConstMeta(
-    debugName: "open_vault",
-    argNames: ["bytes", "password", "keyFile"],
-  );
+        debugName: "open_vault",
+        argNames: ["bytes", "password", "keyFile"],
+      );
 
   @override
-  Future<EntryDetails> crateApiReadEntry({
-    required VaultSession session,
-    required String id,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-            session,
-            serializer,
-          );
-          sse_encode_String(id, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 10,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_entry_details,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiReadEntryConstMeta,
-        argValues: [session, id],
-        apiImpl: this,
+  Future<EntryDetails> crateApiReadEntry(
+      {required VaultSession session, required String id}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+            session, serializer);
+        sse_encode_String(id, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 12, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_entry_details,
+        decodeErrorData: sse_decode_String,
       ),
-    );
+      constMeta: kCrateApiReadEntryConstMeta,
+      argValues: [session, id],
+      apiImpl: this,
+    ));
   }
 
-  TaskConstMeta get kCrateApiReadEntryConstMeta =>
-      const TaskConstMeta(debugName: "read_entry", argNames: ["session", "id"]);
+  TaskConstMeta get kCrateApiReadEntryConstMeta => const TaskConstMeta(
+        debugName: "read_entry",
+        argNames: ["session", "id"],
+      );
 
   @override
   Future<Uint8List> crateApiSaveVault({required VaultSession session}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-            session,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 11,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_prim_u_8_strict,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiSaveVaultConstMeta,
-        argValues: [session],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+            session, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 13, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_list_prim_u_8_strict,
+        decodeErrorData: sse_decode_String,
       ),
-    );
+      constMeta: kCrateApiSaveVaultConstMeta,
+      argValues: [session],
+      apiImpl: this,
+    ));
   }
 
-  TaskConstMeta get kCrateApiSaveVaultConstMeta =>
-      const TaskConstMeta(debugName: "save_vault", argNames: ["session"]);
+  TaskConstMeta get kCrateApiSaveVaultConstMeta => const TaskConstMeta(
+        debugName: "save_vault",
+        argNames: ["session"],
+      );
 
   @override
-  Future<List<EntrySummary>> crateApiSearchEntries({
-    required VaultSession session,
-    required String query,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-            session,
-            serializer,
-          );
-          sse_encode_String(query, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 12,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_entry_summary,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiSearchEntriesConstMeta,
-        argValues: [session, query],
-        apiImpl: this,
+  Future<List<EntrySummary>> crateApiSearchEntries(
+      {required VaultSession session, required String query}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+            session, serializer);
+        sse_encode_String(query, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 14, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_list_entry_summary,
+        decodeErrorData: sse_decode_String,
       ),
-    );
+      constMeta: kCrateApiSearchEntriesConstMeta,
+      argValues: [session, query],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiSearchEntriesConstMeta => const TaskConstMeta(
-    debugName: "search_entries",
-    argNames: ["session", "query"],
-  );
+        debugName: "search_entries",
+        argNames: ["session", "query"],
+      );
 
   @override
-  Future<void> crateApiUpdateEntry({
-    required VaultSession session,
-    required String id,
-    required EntryInput input,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-            session,
-            serializer,
-          );
-          sse_encode_String(id, serializer);
-          sse_encode_box_autoadd_entry_input(input, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 13,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiUpdateEntryConstMeta,
-        argValues: [session, id, input],
-        apiImpl: this,
+  Future<void> crateApiUpdateEntry(
+      {required VaultSession session,
+      required String id,
+      required EntryInput input}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+            session, serializer);
+        sse_encode_String(id, serializer);
+        sse_encode_box_autoadd_entry_input(input, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 15, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_unit,
+        decodeErrorData: sse_decode_String,
       ),
-    );
+      constMeta: kCrateApiUpdateEntryConstMeta,
+      argValues: [session, id, input],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiUpdateEntryConstMeta => const TaskConstMeta(
-    debugName: "update_entry",
-    argNames: ["session", "id", "input"],
-  );
+        debugName: "update_entry",
+        argNames: ["session", "id", "input"],
+      );
 
   @override
   Future<VaultSnapshot> crateApiVaultSnapshot({required VaultSession session}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-            session,
-            serializer,
-          );
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 14,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_vault_snapshot,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiVaultSnapshotConstMeta,
-        argValues: [session],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+            session, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 16, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_vault_snapshot,
+        decodeErrorData: sse_decode_String,
       ),
-    );
+      constMeta: kCrateApiVaultSnapshotConstMeta,
+      argValues: [session],
+      apiImpl: this,
+    ));
   }
 
-  TaskConstMeta get kCrateApiVaultSnapshotConstMeta =>
-      const TaskConstMeta(debugName: "vault_snapshot", argNames: ["session"]);
+  TaskConstMeta get kCrateApiVaultSnapshotConstMeta => const TaskConstMeta(
+        debugName: "vault_snapshot",
+        argNames: ["session"],
+      );
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_VaultSession => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession;
+      get rust_arc_increment_strong_count_VaultSession => wire
+          .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_VaultSession => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession;
+      get rust_arc_decrement_strong_count_VaultSession => wire
+          .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession;
 
   @protected
   VaultSession
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    dynamic raw,
-  ) {
+      dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return VaultSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
   VaultSession
-  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    dynamic raw,
-  ) {
+      dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return VaultSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
   VaultSession
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    dynamic raw,
-  ) {
+      dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return VaultSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
+  DateTime dco_decode_Chrono_NaiveDateTime(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeTimestamp(ts: dco_decode_i_64(raw).toInt(), isUtc: true);
+  }
+
+  @protected
   VaultSession
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    dynamic raw,
-  ) {
+      dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return VaultSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
@@ -645,17 +534,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DateTime dco_decode_box_autoadd_Chrono_NaiveDateTime(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_Chrono_NaiveDateTime(raw);
+  }
+
+  @protected
   EntryInput dco_decode_box_autoadd_entry_input(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_entry_input(raw);
   }
 
   @protected
+  int dco_decode_box_autoadd_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
   EntryDetails dco_decode_entry_details(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return EntryDetails(
       id: dco_decode_String(arr[0]),
       groupId: dco_decode_String(arr[1]),
@@ -664,6 +565,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       password: dco_decode_String(arr[4]),
       url: dco_decode_String(arr[5]),
       notes: dco_decode_String(arr[6]),
+      iconId: dco_decode_opt_box_autoadd_u_32(arr[7]),
+      iconData: dco_decode_list_prim_u_8_strict(arr[8]),
+      tags: dco_decode_list_String(arr[9]),
+      expires: dco_decode_bool(arr[10]),
+      expiresAt: dco_decode_opt_String(arr[11]),
     );
   }
 
@@ -671,14 +577,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   EntryInput dco_decode_entry_input(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return EntryInput(
       title: dco_decode_String(arr[0]),
       username: dco_decode_String(arr[1]),
       password: dco_decode_String(arr[2]),
       url: dco_decode_String(arr[3]),
       notes: dco_decode_String(arr[4]),
+      iconId: dco_decode_opt_box_autoadd_u_32(arr[5]),
+      iconData: dco_decode_list_prim_u_8_strict(arr[6]),
+      tags: dco_decode_list_String(arr[7]),
+      expires: dco_decode_bool(arr[8]),
+      expiresAt: dco_decode_opt_String(arr[9]),
     );
   }
 
@@ -686,8 +597,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   EntrySummary dco_decode_entry_summary(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return EntrySummary(
       id: dco_decode_String(arr[0]),
       groupId: dco_decode_String(arr[1]),
@@ -695,6 +606,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       username: dco_decode_String(arr[3]),
       url: dco_decode_String(arr[4]),
       notes: dco_decode_String(arr[5]),
+      iconId: dco_decode_opt_box_autoadd_u_32(arr[6]),
+      iconData: dco_decode_list_prim_u_8_strict(arr[7]),
+      tags: dco_decode_list_String(arr[8]),
+      expires: dco_decode_bool(arr[9]),
+      expiresAt: dco_decode_opt_String(arr[10]),
     );
   }
 
@@ -710,6 +626,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       groups: dco_decode_list_group_node(arr[2]),
       entries: dco_decode_list_entry_summary(arr[3]),
     );
+  }
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeI64(raw);
+  }
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
   }
 
   @protected
@@ -743,9 +671,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DateTime? dco_decode_opt_box_autoadd_Chrono_NaiveDateTime(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_Chrono_NaiveDateTime(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_32(raw);
+  }
+
+  @protected
   Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_list_prim_u_8_strict(raw);
+  }
+
+  @protected
+  int dco_decode_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -783,50 +731,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   VaultSession
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    SseDeserializer deserializer,
-  ) {
+      sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return VaultSessionImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
+        sse_decode_usize(deserializer), sse_decode_i_32(deserializer));
   }
 
   @protected
   VaultSession
-  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    SseDeserializer deserializer,
-  ) {
+      sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return VaultSessionImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
+        sse_decode_usize(deserializer), sse_decode_i_32(deserializer));
   }
 
   @protected
   VaultSession
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    SseDeserializer deserializer,
-  ) {
+      sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return VaultSessionImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
+        sse_decode_usize(deserializer), sse_decode_i_32(deserializer));
+  }
+
+  @protected
+  DateTime sse_decode_Chrono_NaiveDateTime(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_64(deserializer);
+    return DateTime.fromMicrosecondsSinceEpoch(inner.toInt(), isUtc: true);
   }
 
   @protected
   VaultSession
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    SseDeserializer deserializer,
-  ) {
+      sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return VaultSessionImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
+        sse_decode_usize(deserializer), sse_decode_i_32(deserializer));
   }
 
   @protected
@@ -843,9 +786,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DateTime sse_decode_box_autoadd_Chrono_NaiveDateTime(
+      SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_Chrono_NaiveDateTime(deserializer));
+  }
+
+  @protected
   EntryInput sse_decode_box_autoadd_entry_input(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_entry_input(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_32(deserializer));
   }
 
   @protected
@@ -858,15 +814,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_password = sse_decode_String(deserializer);
     var var_url = sse_decode_String(deserializer);
     var var_notes = sse_decode_String(deserializer);
+    var var_iconId = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_iconData = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_tags = sse_decode_list_String(deserializer);
+    var var_expires = sse_decode_bool(deserializer);
+    var var_expiresAt = sse_decode_opt_String(deserializer);
     return EntryDetails(
-      id: var_id,
-      groupId: var_groupId,
-      title: var_title,
-      username: var_username,
-      password: var_password,
-      url: var_url,
-      notes: var_notes,
-    );
+        id: var_id,
+        groupId: var_groupId,
+        title: var_title,
+        username: var_username,
+        password: var_password,
+        url: var_url,
+        notes: var_notes,
+        iconId: var_iconId,
+        iconData: var_iconData,
+        tags: var_tags,
+        expires: var_expires,
+        expiresAt: var_expiresAt);
   }
 
   @protected
@@ -877,13 +842,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_password = sse_decode_String(deserializer);
     var var_url = sse_decode_String(deserializer);
     var var_notes = sse_decode_String(deserializer);
+    var var_iconId = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_iconData = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_tags = sse_decode_list_String(deserializer);
+    var var_expires = sse_decode_bool(deserializer);
+    var var_expiresAt = sse_decode_opt_String(deserializer);
     return EntryInput(
-      title: var_title,
-      username: var_username,
-      password: var_password,
-      url: var_url,
-      notes: var_notes,
-    );
+        title: var_title,
+        username: var_username,
+        password: var_password,
+        url: var_url,
+        notes: var_notes,
+        iconId: var_iconId,
+        iconData: var_iconData,
+        tags: var_tags,
+        expires: var_expires,
+        expiresAt: var_expiresAt);
   }
 
   @protected
@@ -895,14 +869,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_username = sse_decode_String(deserializer);
     var var_url = sse_decode_String(deserializer);
     var var_notes = sse_decode_String(deserializer);
+    var var_iconId = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_iconData = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_tags = sse_decode_list_String(deserializer);
+    var var_expires = sse_decode_bool(deserializer);
+    var var_expiresAt = sse_decode_opt_String(deserializer);
     return EntrySummary(
-      id: var_id,
-      groupId: var_groupId,
-      title: var_title,
-      username: var_username,
-      url: var_url,
-      notes: var_notes,
-    );
+        id: var_id,
+        groupId: var_groupId,
+        title: var_title,
+        username: var_username,
+        url: var_url,
+        notes: var_notes,
+        iconId: var_iconId,
+        iconData: var_iconData,
+        tags: var_tags,
+        expires: var_expires,
+        expiresAt: var_expiresAt);
   }
 
   @protected
@@ -913,17 +896,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_groups = sse_decode_list_group_node(deserializer);
     var var_entries = sse_decode_list_entry_summary(deserializer);
     return GroupNode(
-      id: var_id,
-      name: var_name,
-      groups: var_groups,
-      entries: var_entries,
-    );
+        id: var_id, name: var_name, groups: var_groups, entries: var_entries);
+  }
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
   }
 
   @protected
   List<EntrySummary> sse_decode_list_entry_summary(
-    SseDeserializer deserializer,
-  ) {
+      SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     var len_ = sse_decode_i_32(deserializer);
@@ -972,6 +968,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DateTime? sse_decode_opt_box_autoadd_Chrono_NaiveDateTime(
+      SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_Chrono_NaiveDateTime(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   Uint8List? sse_decode_opt_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -980,6 +999,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     } else {
       return null;
     }
+  }
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint32();
   }
 
   @protected
@@ -1008,12 +1033,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_groupCount = sse_decode_usize(deserializer);
     var var_dirty = sse_decode_bool(deserializer);
     return VaultSnapshot(
-      name: var_name,
-      root: var_root,
-      entryCount: var_entryCount,
-      groupCount: var_groupCount,
-      dirty: var_dirty,
-    );
+        name: var_name,
+        root: var_root,
+        entryCount: var_entryCount,
+        groupCount: var_groupCount,
+        dirty: var_dirty);
   }
 
   @protected
@@ -1024,54 +1048,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    VaultSession self,
-    SseSerializer serializer,
-  ) {
+      sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          VaultSession self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as VaultSessionImpl).frbInternalSseEncode(move: true),
-      serializer,
-    );
+        (self as VaultSessionImpl).frbInternalSseEncode(move: true),
+        serializer);
   }
 
   @protected
   void
-  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    VaultSession self,
-    SseSerializer serializer,
-  ) {
+      sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          VaultSession self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as VaultSessionImpl).frbInternalSseEncode(move: false),
-      serializer,
-    );
+        (self as VaultSessionImpl).frbInternalSseEncode(move: false),
+        serializer);
   }
 
   @protected
   void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    VaultSession self,
-    SseSerializer serializer,
-  ) {
+      sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          VaultSession self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as VaultSessionImpl).frbInternalSseEncode(move: false),
-      serializer,
-    );
+        (self as VaultSessionImpl).frbInternalSseEncode(move: false),
+        serializer);
+  }
+
+  @protected
+  void sse_encode_Chrono_NaiveDateTime(
+      DateTime self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(
+        PlatformInt64Util.from(self.microsecondsSinceEpoch), serializer);
   }
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
-    VaultSession self,
-    SseSerializer serializer,
-  ) {
+      sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
+          VaultSession self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
-      (self as VaultSessionImpl).frbInternalSseEncode(move: null),
-      serializer,
-    );
+        (self as VaultSessionImpl).frbInternalSseEncode(move: null),
+        serializer);
   }
 
   @protected
@@ -1087,12 +1107,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_Chrono_NaiveDateTime(
+      DateTime self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_Chrono_NaiveDateTime(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_entry_input(
-    EntryInput self,
-    SseSerializer serializer,
-  ) {
+      EntryInput self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_entry_input(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self, serializer);
   }
 
   @protected
@@ -1105,6 +1136,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.password, serializer);
     sse_encode_String(self.url, serializer);
     sse_encode_String(self.notes, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.iconId, serializer);
+    sse_encode_list_prim_u_8_strict(self.iconData, serializer);
+    sse_encode_list_String(self.tags, serializer);
+    sse_encode_bool(self.expires, serializer);
+    sse_encode_opt_String(self.expiresAt, serializer);
   }
 
   @protected
@@ -1115,6 +1151,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.password, serializer);
     sse_encode_String(self.url, serializer);
     sse_encode_String(self.notes, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.iconId, serializer);
+    sse_encode_list_prim_u_8_strict(self.iconData, serializer);
+    sse_encode_list_String(self.tags, serializer);
+    sse_encode_bool(self.expires, serializer);
+    sse_encode_opt_String(self.expiresAt, serializer);
   }
 
   @protected
@@ -1126,6 +1167,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.username, serializer);
     sse_encode_String(self.url, serializer);
     sse_encode_String(self.notes, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.iconId, serializer);
+    sse_encode_list_prim_u_8_strict(self.iconData, serializer);
+    sse_encode_list_String(self.tags, serializer);
+    sse_encode_bool(self.expires, serializer);
+    sse_encode_opt_String(self.expiresAt, serializer);
   }
 
   @protected
@@ -1138,10 +1184,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_entry_summary(
-    List<EntrySummary> self,
-    SseSerializer serializer,
-  ) {
+      List<EntrySummary> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
@@ -1151,9 +1210,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void sse_encode_list_group_node(
-    List<GroupNode> self,
-    SseSerializer serializer,
-  ) {
+      List<GroupNode> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
@@ -1163,21 +1220,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void sse_encode_list_prim_u_8_loose(
-    List<int> self,
-    SseSerializer serializer,
-  ) {
+      List<int> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
-    serializer.buffer.putUint8List(
-      self is Uint8List ? self : Uint8List.fromList(self),
-    );
+    serializer.buffer
+        .putUint8List(self is Uint8List ? self : Uint8List.fromList(self));
   }
 
   @protected
   void sse_encode_list_prim_u_8_strict(
-    Uint8List self,
-    SseSerializer serializer,
-  ) {
+      Uint8List self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
@@ -1194,16 +1246,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_Chrono_NaiveDateTime(
+      DateTime? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_Chrono_NaiveDateTime(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_32(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_list_prim_u_8_strict(
-    Uint8List? self,
-    SseSerializer serializer,
-  ) {
+      Uint8List? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_list_prim_u_8_strict(self, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint32(self);
   }
 
   @protected
@@ -1244,11 +1321,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 class VaultSessionImpl extends RustOpaque implements VaultSession {
   // Not to be used by end users
   VaultSessionImpl.frbInternalDcoDecode(List<dynamic> wire)
-    : super.frbInternalDcoDecode(wire, _kStaticData);
+      : super.frbInternalDcoDecode(wire, _kStaticData);
 
   // Not to be used by end users
   VaultSessionImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
-    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+      : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
 
   static final _kStaticData = RustArcStaticData(
     rustArcIncrementStrongCount:

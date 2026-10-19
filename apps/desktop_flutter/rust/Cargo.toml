@@ -8,6 +8,7 @@ rust-version = "1.89"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
+chrono = "0.4"
 flutter_rust_bridge = "=2.13.0"
 kdbx = { path = "../../../rust_core/kdbx" }
 uuid = "1"

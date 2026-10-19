@@ -14,7 +14,7 @@ pub use keepass::config::{
 pub use keepass::db::{
     fields, Attachment, AttachmentMut, Database, DatabaseFormatError, DatabaseOpenError,
     DatabaseSaveError, Entry, EntryId, EntryMut, EntryRef, EntryTrack, Group, GroupId, GroupMut,
-    GroupRef, GroupTrack, Value,
+    GroupRef, GroupTrack, Icon, Value,
 };
 pub use keepass::DatabaseKey;
 
