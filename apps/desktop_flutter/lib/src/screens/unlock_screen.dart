@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:keeppass_nexus/src/theme.dart';
 import 'package:keeppass_nexus/src/vault_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UnlockScreen extends StatefulWidget {
   const UnlockScreen({required this.controller, super.key});
@@ -19,6 +20,21 @@ class _UnlockScreenState extends State<UnlockScreen> {
   String? _error;
   bool _busy = false;
   bool _showPassword = false;
+  List<String> _recentFiles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentFiles();
+  }
+
+  Future<void> _loadRecentFiles() async {
+    final preferences = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _recentFiles = preferences.getStringList('recentVaultFiles') ?? [];
+    });
+  }
 
   @override
   void dispose() {
@@ -51,6 +67,8 @@ class _UnlockScreenState extends State<UnlockScreen> {
       _error = null;
     });
   }
+
+  String _fileName(String path) => path.split(RegExp(r'[/\\]')).last;
 
   Future<void> _unlock() async {
     final path = _databasePath;
@@ -254,6 +272,34 @@ class _UnlockScreenState extends State<UnlockScreen> {
                         ),
                       ),
                     ),
+                    if (_recentFiles.isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      Text('Recent databases',
+                          style: theme.textTheme.titleSmall),
+                      const SizedBox(height: 8),
+                      ..._recentFiles.map(
+                        (path) => ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.history),
+                          title: Text(
+                            _fileName(path),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            path,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: _busy
+                              ? null
+                              : () => setState(() {
+                                    _databasePath = path;
+                                    _error = null;
+                                  }),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                     TextButton.icon(
                       onPressed: _busy ? null : _createVault,

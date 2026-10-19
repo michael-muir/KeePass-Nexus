@@ -42,6 +42,32 @@ the KDBX database and shown in the entry list and details pane. The
 entry editor stores whitespace-separated tags and native KDBX expiration
 metadata, with date/time selection and relative presets. Expiry timestamps use
 UTC at the precision supported by KDBX. Notes remain part of the entry form.
+Entries also support favorites, cloning, custom fields, file attachments, and
+viewing/restoring entry history. Attachments can be added and exported; removing
+an existing attachment is disabled because the current KDBX library cannot
+preserve attachment references in historical revisions when it is removed.
+Deleted entries and groups are moved to the database recycle bin, where they
+can be restored or permanently deleted. Groups can be renamed and moved.
+Favorite and tag filters are available in the vault navigation, and recently
+viewed entries are tracked for the current open session. The unlock screen
+retains up to ten recent database paths on the device.
+The client currently opens one database at a time, and group ordering remains
+alphabetical rather than user-configurable.
+The client verifies generated KDBX files by reopening them and comparing the
+decoded database model before committing them to disk. Saves create and verify
+a recovery copy at `<database>.nexus-backup`; changes made to the file outside
+the app are detected and not overwritten. Saving a KDBX 3 database requires
+explicit confirmation to convert it to KDBX 4.1; saving a KDBX 4.0 database
+requires explicit confirmation to upgrade it to 4.1. Both upgrades occur only
+after the recovery copy has been verified. Closing the desktop window with
+unsaved changes offers save, discard, and cancel.
+
+The Rust interoperability suite includes KeePassXC's pinned KDBX 3.0 and
+KDBX 4.0 test databases, as well as KDBX 3.1 and KDBX 4.1 fixtures covering
+AES-KDF, Argon2, Argon2id, AES, and ChaCha20. Automated tests verify parsing
+and round-tripping the supported model; validating generated files in the
+KeePassXC application remains a separate release check.
+
 The Windows runner requests exclusion from supported screen-capture APIs using
 [`SetWindowDisplayAffinity`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowdisplayaffinity);
 Windows documents this as best effort, and it does not prevent external cameras

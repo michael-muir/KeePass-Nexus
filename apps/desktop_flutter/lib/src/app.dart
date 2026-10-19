@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:keeppass_nexus/src/entry_icons.dart';
 import 'package:keeppass_nexus/src/rust/api.dart' as rust_api;
 import 'package:keeppass_nexus/src/screens/entry_editor_dialog.dart';
@@ -10,6 +12,7 @@ import 'package:keeppass_nexus/src/screens/unlock_screen.dart';
 import 'package:keeppass_nexus/src/theme.dart';
 import 'package:keeppass_nexus/src/vault_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 
 class KeePassNexusApp extends StatefulWidget {
   const KeePassNexusApp({super.key});
@@ -18,19 +21,32 @@ class KeePassNexusApp extends StatefulWidget {
   State<KeePassNexusApp> createState() => _KeePassNexusAppState();
 }
 
-class _KeePassNexusAppState extends State<KeePassNexusApp> {
+class _KeePassNexusAppState extends State<KeePassNexusApp> with WindowListener {
   final _vault = VaultController();
+  final _workspaceKey = GlobalKey<_VaultWorkspaceState>();
   ThemeMode _themeMode = ThemeMode.system;
   int _autoLockMinutes = 5;
 
   @override
   void initState() {
     super.initState();
+    windowManager.addListener(this);
     _loadSettings();
   }
 
   @override
+  void onWindowClose() {
+    final workspace = _workspaceKey.currentState;
+    if (workspace == null) {
+      windowManager.destroy();
+    } else {
+      workspace._handleWindowClose();
+    }
+  }
+
+  @override
   void dispose() {
+    windowManager.removeListener(this);
     _vault.dispose();
     super.dispose();
   }
@@ -73,6 +89,7 @@ class _KeePassNexusAppState extends State<KeePassNexusApp> {
         builder: (context, _) {
           if (!_vault.isOpen) return UnlockScreen(controller: _vault);
           return VaultWorkspace(
+            key: _workspaceKey,
             controller: _vault,
             themeMode: _themeMode,
             onThemeModeChanged: _setThemeMode,
@@ -107,6 +124,7 @@ class VaultWorkspace extends StatefulWidget {
 
 class _VaultWorkspaceState extends State<VaultWorkspace> {
   bool _showSettings = false;
+  bool _handlingWindowClose = false;
   final _search = TextEditingController();
   Timer? _idleTimer;
 
@@ -155,7 +173,39 @@ class _VaultWorkspaceState extends State<VaultWorkspace> {
 
   Future<void> _save() async {
     try {
-      await widget.controller.save();
+      var allowKdbxFormatUpgrade = false;
+      if (widget.controller.requiresKdbxFormatUpgrade) {
+        final path = widget.controller.filePath!;
+        final sourceVersion = widget.controller.sourceKdbxVersion;
+        final upgradeDescription = sourceVersion?.startsWith('3.') == true
+            ? 'convert it from KDBX $sourceVersion to KDBX 4.1'
+            : 'upgrade it from KDBX 4.0 to KDBX 4.1';
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Upgrade database format?'),
+            content: Text(
+              'Saving will $upgradeDescription and create a verified encrypted '
+              'recovery backup at "$path.nexus-backup" before replacing the '
+              'original. The recovery backup is updated on each later save.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Back up and upgrade'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted || confirmed != true) return;
+        allowKdbxFormatUpgrade = true;
+      }
+      await widget.controller
+          .save(allowKdbxFormatUpgrade: allowKdbxFormatUpgrade);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Database saved securely.')),
@@ -200,6 +250,46 @@ class _VaultWorkspaceState extends State<VaultWorkspace> {
     await widget.controller.lock();
   }
 
+  Future<void> _handleWindowClose() async {
+    if (_handlingWindowClose) return;
+    _handlingWindowClose = true;
+    try {
+      if (widget.controller.isDirty) {
+        final action = await showDialog<_LockAction>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Unsaved changes'),
+            content: const Text(
+              'Save your changes before closing KeePass Nexus?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, _LockAction.cancel),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, _LockAction.discard),
+                child: const Text('Discard changes'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, _LockAction.save),
+                child: const Text('Save and close'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted || action == null || action == _LockAction.cancel) return;
+        if (action == _LockAction.save) {
+          await _save();
+          if (widget.controller.isDirty) return;
+        }
+      }
+      await windowManager.destroy();
+    } finally {
+      _handlingWindowClose = false;
+    }
+  }
+
   Future<void> _newEntry() async {
     final groupId = widget.controller.selectedGroupId;
     if (groupId == null) return;
@@ -230,11 +320,21 @@ class _VaultWorkspaceState extends State<VaultWorkspace> {
   }
 
   Future<void> _deleteEntry(String id) async {
+    final entry = await widget.controller.readEntry(id);
+    if (!mounted) return;
+    final inRecycleBin =
+        widget.controller.isGroupDirectlyInRecycleBin(entry.groupId);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete entry?'),
-        content: const Text('This entry will be removed from the database.'),
+        title: Text(inRecycleBin
+            ? 'Permanently delete entry?'
+            : 'Move entry to recycle bin?'),
+        content: Text(
+          inRecycleBin
+              ? 'This entry and its attachments will be permanently removed.'
+              : 'The entry can be restored from the database recycle bin.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -245,17 +345,201 @@ class _VaultWorkspaceState extends State<VaultWorkspace> {
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(
+                inRecycleBin ? 'Delete permanently' : 'Move to recycle bin'),
           ),
         ],
       ),
     );
     if (confirmed != true) return;
     try {
-      await widget.controller.deleteEntry(id);
+      if (inRecycleBin) {
+        await widget.controller.permanentlyDeleteEntry(id);
+      } else {
+        await widget.controller.deleteEntry(id);
+      }
     } catch (error) {
       _showError(error);
     }
+  }
+
+  Future<void> _restoreEntry(String id) async {
+    try {
+      await widget.controller.restoreEntry(id);
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  Future<void> _cloneEntry(String id) async {
+    try {
+      await widget.controller.cloneEntry(id);
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  Future<void> _toggleFavorite(String id, bool favorite) async {
+    try {
+      await widget.controller.toggleFavorite(id, favorite);
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  Future<void> _showHistory(String id) async {
+    try {
+      final history = await widget.controller.entryHistory(id);
+      if (!mounted) return;
+      final selected = await showDialog<BigInt>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Entry history'),
+          content: SizedBox(
+            width: 460,
+            height: 360,
+            child: history.isEmpty
+                ? const Center(child: Text('No previous revisions.'))
+                : ListView(
+                    children: [
+                      for (final item in history)
+                        ListTile(
+                          title: Text(
+                            item.title.isEmpty ? 'Untitled' : item.title,
+                          ),
+                          subtitle: Text([
+                            item.username,
+                            if (item.modifiedAt != null) item.modifiedAt!,
+                          ].where((text) => text.isNotEmpty).join(' · ')),
+                          trailing: const Icon(Icons.restore),
+                          onTap: () => Navigator.pop(context, item.index),
+                        ),
+                    ],
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+      if (selected == null || !mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Restore this revision?'),
+          content: const Text(
+            'The current entry will be saved as a new history revision.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Restore'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed == true) {
+        await widget.controller.restoreEntryHistory(id, selected);
+      }
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  Future<void> _renameGroup(String id, String currentName) async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => _NewGroupDialog(
+        title: 'Rename group',
+        actionLabel: 'Save',
+        initialName: currentName,
+      ),
+    );
+    if (name == null) return;
+    try {
+      await widget.controller.renameGroup(id, name);
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  Future<void> _moveGroup(String id) async {
+    final groups = _flattenGroups(widget.controller.snapshot?.root)
+        .where((group) => !group.isRecycleBin && group.id != id)
+        .toList();
+    final destination = await showDialog<String>(
+      context: context,
+      builder: (context) => _GroupDestinationDialog(groups: groups),
+    );
+    if (destination == null) return;
+    try {
+      await widget.controller.moveGroup(id, destination);
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  Future<void> _deleteGroup(String id, {required bool permanent}) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(permanent
+            ? 'Permanently delete group?'
+            : 'Move group to recycle bin?'),
+        content: Text(
+          permanent
+              ? 'This group and all of its contents will be permanently deleted.'
+              : 'The group and all nested contents will move to the recycle bin and can be restored.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child:
+                Text(permanent ? 'Delete permanently' : 'Move to recycle bin'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      if (permanent) {
+        await widget.controller.permanentlyDeleteGroup(id);
+      } else {
+        await widget.controller.deleteGroup(id);
+      }
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  Future<void> _restoreGroup(String id) async {
+    try {
+      await widget.controller.restoreGroup(id);
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  List<rust_api.GroupNode> _flattenGroups(rust_api.GroupNode? group) {
+    if (group == null) return const [];
+    return [
+      group,
+      for (final child in group.groups) ..._flattenGroups(child),
+    ];
   }
 
   Future<void> _newGroup() async {
@@ -292,6 +576,11 @@ class _VaultWorkspaceState extends State<VaultWorkspace> {
                     onSettings: () => setState(() => _showSettings = true),
                     onBrowse: () => setState(() => _showSettings = false),
                     onNewGroup: _newGroup,
+                    onRenameGroup: _renameGroup,
+                    onMoveGroup: _moveGroup,
+                    onDeleteGroup: (id, permanent) =>
+                        _deleteGroup(id, permanent: permanent),
+                    onRestoreGroup: _restoreGroup,
                     onLock: _lock,
                     onGroupSelected: _search.clear,
                   ),
@@ -325,6 +614,10 @@ class _VaultWorkspaceState extends State<VaultWorkspace> {
                                 controller: widget.controller,
                                 onEdit: _editEntry,
                                 onDelete: _deleteEntry,
+                                onClone: _cloneEntry,
+                                onToggleFavorite: _toggleFavorite,
+                                onHistory: _showHistory,
+                                onRestore: _restoreEntry,
                               ),
                       ),
                     ],
@@ -348,6 +641,10 @@ class _VaultSidebar extends StatelessWidget {
     required this.onSettings,
     required this.onBrowse,
     required this.onNewGroup,
+    required this.onRenameGroup,
+    required this.onMoveGroup,
+    required this.onDeleteGroup,
+    required this.onRestoreGroup,
     required this.onLock,
     required this.onGroupSelected,
   });
@@ -357,6 +654,10 @@ class _VaultSidebar extends StatelessWidget {
   final VoidCallback onSettings;
   final VoidCallback onBrowse;
   final VoidCallback onNewGroup;
+  final void Function(String id, String currentName) onRenameGroup;
+  final ValueChanged<String> onMoveGroup;
+  final void Function(String id, bool permanent) onDeleteGroup;
+  final ValueChanged<String> onRestoreGroup;
   final VoidCallback onLock;
   final VoidCallback onGroupSelected;
 
@@ -414,6 +715,77 @@ class _VaultSidebar extends StatelessWidget {
               onTap: onBrowse,
             ),
           ),
+        if (controller.requiresKdbxFormatUpgrade)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+            child: Material(
+              color: theme.colorScheme.tertiaryContainer,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 18,
+                      color: theme.colorScheme.onTertiaryContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        controller.sourceKdbxVersion?.startsWith('3.') == true
+                            ? 'Saving upgrades KDBX ${controller.sourceKdbxVersion} to KDBX 4.1.'
+                            : 'Saving upgrades KDBX 4.0 to KDBX 4.1.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onTertiaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ListTile(
+          dense: true,
+          selected: controller.showFavorites,
+          leading: const Icon(Icons.star_outline, size: 19),
+          title: const Text('Favorites'),
+          onTap: () {
+            onBrowse();
+            controller.selectFavorites();
+          },
+        ),
+        ListTile(
+          dense: true,
+          selected: controller.showRecent,
+          leading: const Icon(Icons.history, size: 19),
+          title: const Text('Recently viewed'),
+          onTap: () {
+            onBrowse();
+            controller.selectRecent();
+          },
+        ),
+        if (controller.availableTags.isNotEmpty)
+          ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+            leading: const Icon(Icons.sell_outlined, size: 19),
+            title: const Text('Tags'),
+            children: [
+              for (final tag in controller.availableTags)
+                ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.only(left: 48, right: 12),
+                  selected: controller.selectedTag == tag,
+                  title: Text(tag),
+                  onTap: () {
+                    onBrowse();
+                    controller.selectTag(tag);
+                  },
+                ),
+            ],
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 16, 14, 6),
           child: Row(
@@ -446,6 +818,12 @@ class _VaultSidebar extends StatelessWidget {
                   group: snapshot.root,
                   depth: 0,
                   selectedId: controller.selectedGroupId,
+                  onRename: onRenameGroup,
+                  onMove: onMoveGroup,
+                  onDelete: onDeleteGroup,
+                  onRestore: onRestoreGroup,
+                  inRecycleBin: false,
+                  isRoot: true,
                   onSelect: (id) {
                     onBrowse();
                     onGroupSelected();
@@ -490,12 +868,24 @@ class _GroupTreeTile extends StatelessWidget {
     required this.group,
     required this.depth,
     required this.selectedId,
+    required this.onRename,
+    required this.onMove,
+    required this.onDelete,
+    required this.onRestore,
+    required this.inRecycleBin,
+    required this.isRoot,
     required this.onSelect,
   });
 
   final rust_api.GroupNode group;
   final int depth;
   final String? selectedId;
+  final void Function(String id, String currentName) onRename;
+  final ValueChanged<String> onMove;
+  final void Function(String id, bool permanent) onDelete;
+  final ValueChanged<String> onRestore;
+  final bool inRecycleBin;
+  final bool isRoot;
   final ValueChanged<String> onSelect;
 
   @override
@@ -516,9 +906,48 @@ class _GroupTreeTile extends StatelessWidget {
               size: 19,
             ),
             title: Text(group.name.isEmpty ? 'Root' : group.name),
-            trailing: Text(
-              '${group.entries.length}',
-              style: Theme.of(context).textTheme.labelSmall,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${group.entries.length}',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+                if (!isRoot && !group.isRecycleBin)
+                  PopupMenuButton<String>(
+                    tooltip: 'Group actions',
+                    onSelected: (action) {
+                      if (action == 'rename') onRename(group.id, group.name);
+                      if (action == 'move') onMove(group.id);
+                      if (action == 'restore') onRestore(group.id);
+                      if (action == 'trash') onDelete(group.id, false);
+                      if (action == 'permanent') onDelete(group.id, true);
+                    },
+                    itemBuilder: (_) => [
+                      if (inRecycleBin) ...[
+                        if (group.parentIsRecycleBin)
+                          const PopupMenuItem(
+                            value: 'restore',
+                            child: Text('Restore'),
+                          ),
+                        const PopupMenuItem(
+                          value: 'permanent',
+                          child: Text('Delete permanently'),
+                        ),
+                      ] else ...[
+                        const PopupMenuItem(
+                          value: 'rename',
+                          child: Text('Rename'),
+                        ),
+                        const PopupMenuItem(value: 'move', child: Text('Move')),
+                        const PopupMenuItem(
+                          value: 'trash',
+                          child: Text('Move to recycle bin'),
+                        ),
+                      ],
+                    ],
+                  ),
+              ],
             ),
             onTap: () => onSelect(group.id),
           ),
@@ -528,6 +957,12 @@ class _GroupTreeTile extends StatelessWidget {
             group: child,
             depth: depth + 1,
             selectedId: selectedId,
+            onRename: onRename,
+            onMove: onMove,
+            onDelete: onDelete,
+            onRestore: onRestore,
+            inRecycleBin: inRecycleBin || group.isRecycleBin,
+            isRoot: false,
             onSelect: onSelect,
           ),
       ],
@@ -564,7 +999,13 @@ class _WorkspaceHeader extends StatelessWidget {
                 ? 'Settings'
                 : controller.searchQuery.isNotEmpty
                     ? 'Search results'
-                    : controller.snapshot?.name ?? 'Database',
+                    : controller.showFavorites
+                        ? 'Favorites'
+                        : controller.showRecent
+                            ? 'Recently viewed'
+                            : controller.selectedTag != null
+                                ? 'Tag: ${controller.selectedTag}'
+                                : controller.snapshot?.name ?? 'Database',
             style: theme.textTheme.titleLarge
                 ?.copyWith(fontWeight: FontWeight.w600),
           ),
@@ -626,11 +1067,19 @@ class _EntryBrowser extends StatelessWidget {
     required this.controller,
     required this.onEdit,
     required this.onDelete,
+    required this.onClone,
+    required this.onToggleFavorite,
+    required this.onHistory,
+    required this.onRestore,
   });
 
   final VaultController controller;
   final ValueChanged<String> onEdit;
   final ValueChanged<String> onDelete;
+  final ValueChanged<String> onClone;
+  final void Function(String id, bool favorite) onToggleFavorite;
+  final ValueChanged<String> onHistory;
+  final ValueChanged<String> onRestore;
 
   @override
   Widget build(BuildContext context) {
@@ -758,6 +1207,21 @@ class _EntryBrowser extends StatelessWidget {
                                         ),
                                       ),
                                     ),
+                                    IconButton(
+                                      tooltip: entry.favorite
+                                          ? 'Remove from favorites'
+                                          : 'Add to favorites',
+                                      onPressed: () => onToggleFavorite(
+                                        entry.id,
+                                        !entry.favorite,
+                                      ),
+                                      icon: Icon(
+                                        entry.favorite
+                                            ? Icons.star
+                                            : Icons.star_outline,
+                                        size: 19,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -780,6 +1244,13 @@ class _EntryBrowser extends StatelessWidget {
                   controller: controller,
                   onEdit: () => onEdit(selectedEntry.id),
                   onDelete: () => onDelete(selectedEntry.id),
+                  onClone: () => onClone(selectedEntry.id),
+                  onToggleFavorite: (favorite) =>
+                      onToggleFavorite(selectedEntry.id, favorite),
+                  onHistory: () => onHistory(selectedEntry.id),
+                  onRestore: () => onRestore(selectedEntry.id),
+                  inRecycleBin: controller
+                      .isGroupDirectlyInRecycleBin(selectedEntry.groupId),
                 ),
         ),
       ],
@@ -793,6 +1264,11 @@ class _EntryDetailsPanel extends StatefulWidget {
     required this.controller,
     required this.onEdit,
     required this.onDelete,
+    required this.onClone,
+    required this.onToggleFavorite,
+    required this.onHistory,
+    required this.onRestore,
+    required this.inRecycleBin,
     super.key,
   });
 
@@ -800,6 +1276,11 @@ class _EntryDetailsPanel extends StatefulWidget {
   final VaultController controller;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onClone;
+  final ValueChanged<bool> onToggleFavorite;
+  final VoidCallback onHistory;
+  final VoidCallback onRestore;
+  final bool inRecycleBin;
 
   @override
   State<_EntryDetailsPanel> createState() => _EntryDetailsPanelState();
@@ -808,6 +1289,7 @@ class _EntryDetailsPanel extends StatefulWidget {
 class _EntryDetailsPanelState extends State<_EntryDetailsPanel> {
   late Future<rust_api.EntryDetails> _details;
   bool _revealPassword = false;
+  final Set<String> _revealedCustomFields = {};
 
   @override
   void initState() {
@@ -855,10 +1337,38 @@ class _EntryDetailsPanelState extends State<_EntryDetailsPanel> {
                   onSelected: (action) {
                     if (action == 'edit') widget.onEdit();
                     if (action == 'delete') widget.onDelete();
+                    if (action == 'clone') widget.onClone();
+                    if (action == 'history') widget.onHistory();
+                    if (action == 'restore') widget.onRestore();
+                    if (action == 'favorite') {
+                      widget.onToggleFavorite(!details.favorite);
+                    }
                   },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'edit', child: Text('Edit entry')),
-                    PopupMenuItem(value: 'delete', child: Text('Delete entry')),
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                        value: 'edit', child: Text('Edit entry')),
+                    const PopupMenuItem(
+                        value: 'clone', child: Text('Duplicate entry')),
+                    PopupMenuItem(
+                      value: 'favorite',
+                      child: Text(details.favorite
+                          ? 'Remove from favorites'
+                          : 'Add to favorites'),
+                    ),
+                    if (details.historyCount > BigInt.zero)
+                      const PopupMenuItem(
+                        value: 'history',
+                        child: Text('View history'),
+                      ),
+                    if (widget.inRecycleBin)
+                      const PopupMenuItem(
+                          value: 'restore', child: Text('Restore')),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(widget.inRecycleBin
+                          ? 'Delete permanently'
+                          : 'Move to recycle bin'),
+                    ),
                   ],
                 ),
               ],
@@ -895,6 +1405,55 @@ class _EntryDetailsPanelState extends State<_EntryDetailsPanel> {
                       ),
               ),
             _DetailField(label: 'NOTES', value: details.notes),
+            for (final field in details.customFields)
+              _DetailField(
+                label: field.name.toUpperCase(),
+                value: field.protected &&
+                        !_revealedCustomFields.contains(field.name)
+                    ? '••••••••••'
+                    : field.value,
+                trailing: field.protected
+                    ? IconButton(
+                        tooltip: _revealedCustomFields.contains(field.name)
+                            ? 'Hide value'
+                            : 'Reveal value',
+                        onPressed: () => setState(() {
+                          if (!_revealedCustomFields.add(field.name)) {
+                            _revealedCustomFields.remove(field.name);
+                          }
+                        }),
+                        icon: Icon(
+                          _revealedCustomFields.contains(field.name)
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 18,
+                        ),
+                      )
+                    : null,
+              ),
+            if (details.attachments.isNotEmpty) ...[
+              const Divider(),
+              Text('ATTACHMENTS', style: theme.textTheme.labelSmall),
+              for (final attachment in details.attachments)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.attach_file),
+                  title: Text(attachment.name,
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text('${attachment.data.length} bytes'),
+                  trailing: IconButton(
+                    tooltip: 'Save attachment',
+                    onPressed: () => _saveAttachment(context, attachment),
+                    icon: const Icon(Icons.download_outlined),
+                  ),
+                ),
+            ],
+            if (details.historyCount > BigInt.zero)
+              OutlinedButton.icon(
+                onPressed: widget.onHistory,
+                icon: const Icon(Icons.history),
+                label: Text('History (${details.historyCount})'),
+              ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: widget.onEdit,
@@ -905,6 +1464,25 @@ class _EntryDetailsPanelState extends State<_EntryDetailsPanel> {
         );
       },
     );
+  }
+
+  Future<void> _saveAttachment(
+    BuildContext context,
+    rust_api.EntryAttachment attachment,
+  ) async {
+    final path = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save attachment',
+      fileName: attachment.name,
+    );
+    if (path == null) return;
+    try {
+      await File(path).writeAsBytes(attachment.data, flush: true);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to save attachment: $error')),
+      );
+    }
   }
 }
 
@@ -1064,14 +1642,28 @@ class _EmptyEntries extends StatelessWidget {
 }
 
 class _NewGroupDialog extends StatefulWidget {
-  const _NewGroupDialog();
+  const _NewGroupDialog({
+    this.title = 'Create group',
+    this.actionLabel = 'Create group',
+    this.initialName = '',
+  });
+
+  final String title;
+  final String actionLabel;
+  final String initialName;
 
   @override
   State<_NewGroupDialog> createState() => _NewGroupDialogState();
 }
 
 class _NewGroupDialogState extends State<_NewGroupDialog> {
-  final _name = TextEditingController();
+  late final TextEditingController _name;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.initialName);
+  }
 
   @override
   void dispose() {
@@ -1082,7 +1674,7 @@ class _NewGroupDialogState extends State<_NewGroupDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Create group'),
+      title: Text(widget.title),
       content: SizedBox(
         width: 360,
         child: TextField(
@@ -1106,7 +1698,40 @@ class _NewGroupDialogState extends State<_NewGroupDialog> {
           onPressed: _name.text.trim().isEmpty
               ? null
               : () => Navigator.pop(context, _name.text.trim()),
-          child: const Text('Create group'),
+          child: Text(widget.actionLabel),
+        ),
+      ],
+    );
+  }
+}
+
+class _GroupDestinationDialog extends StatelessWidget {
+  const _GroupDestinationDialog({required this.groups});
+
+  final List<rust_api.GroupNode> groups;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Move group'),
+      content: SizedBox(
+        width: 360,
+        height: 360,
+        child: ListView(
+          children: [
+            for (final group in groups)
+              ListTile(
+                leading: const Icon(Icons.folder_outlined),
+                title: Text(group.name.isEmpty ? 'Root' : group.name),
+                onTap: () => Navigator.pop(context, group.id),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
         ),
       ],
     );

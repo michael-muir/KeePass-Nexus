@@ -12,9 +12,9 @@ pub use keepass::config::{
     CompressionConfig, DatabaseVersion, InnerCipherConfig, KdfConfig, OuterCipherConfig,
 };
 pub use keepass::db::{
-    fields, Attachment, AttachmentMut, Database, DatabaseFormatError, DatabaseOpenError,
-    DatabaseSaveError, Entry, EntryId, EntryMut, EntryRef, EntryTrack, Group, GroupId, GroupMut,
-    GroupRef, GroupTrack, Icon, Value,
+    fields, Attachment, AttachmentMut, AttachmentRef, CustomDataItem, CustomDataValue, Database,
+    DatabaseFormatError, DatabaseOpenError, DatabaseSaveError, Entry, EntryId, EntryMut, EntryRef,
+    EntryTrack, Group, GroupId, GroupMut, GroupRef, GroupTrack, Icon, Value,
 };
 pub use keepass::DatabaseKey;
 
@@ -69,6 +69,12 @@ pub enum KdbxError {
     #[error(transparent)]
     Save(#[from] DatabaseSaveError),
 
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error("the saved KDBX file did not preserve the in-memory database")]
+    SaveVerificationFailed,
+
     #[error("malformed KDBX header while checking KDF resource limits: {0}")]
     MalformedKdfHeader(&'static str),
 
@@ -105,7 +111,7 @@ pub enum VaultError {
 
 /// An open KeePass database with checked entry and group CRUD operations.
 ///
-/// Mutations are held in memory until [`save_kdbx4`] is called. Existing
+/// Mutations are held in memory until [`save_kdbx4`] or [`save_as_kdbx4`] is called. Existing
 /// `Database` APIs remain available through [`database`] and [`database_mut`]
 /// for operations outside this CRUD facade.
 ///
@@ -290,9 +296,17 @@ impl KdbxDatabase {
         Ok(())
     }
 
-    /// Serializes and encrypts this database as KDBX 4.
+    /// Serializes and verifies this KDBX 4.1 database.
     pub fn save_kdbx4(&self, key: DatabaseKey, destination: &mut dyn Write) -> KdbxResult<()> {
         save_kdbx4(&self.database, key, destination)
+    }
+
+    /// Converts a KDBX 3 database to KDBX 4, or saves a KDBX 4 database.
+    ///
+    /// The caller must obtain explicit user confirmation before converting an
+    /// existing KDBX 3 or KDBX 4.0 file and retain a verified backup.
+    pub fn save_as_kdbx4(&self, key: DatabaseKey, destination: &mut dyn Write) -> KdbxResult<()> {
+        save_as_kdbx4(&self.database, key, destination)
     }
 }
 
@@ -321,17 +335,88 @@ pub fn open_with_kdf_limits(
     Ok(Database::parse(bytes, key)?)
 }
 
-/// Serializes and encrypts a database as KDBX 4.
-///
-/// The underlying `keepass` crate currently describes KDBX 4 writing as
-/// experimental. Do not rely on this for production data without validating
-/// output against supported KeePass/KeePassXC versions and retaining backups.
+/// Serializes a KDBX 4 database and verifies that it can be reopened without
+/// changing the in-memory database.
 pub fn save_kdbx4(
     database: &Database,
     key: DatabaseKey,
     destination: &mut dyn Write,
 ) -> KdbxResult<()> {
-    Ok(database.save(destination, key)?)
+    if !matches!(database.config.version, DatabaseVersion::KDB4(1)) {
+        return Err(DatabaseSaveError::UnsupportedVersion.into());
+    }
+    save_and_verify(database, database, key, destination)
+}
+
+/// Converts KDBX 3 to KDBX 4, upgrades KDBX 4.0 to 4.1, or saves KDBX 4.1,
+/// verifying the decoded result.
+///
+/// KDB, KDBX 2, and other unsupported formats are rejected. KDBX 3 and KDBX
+/// 4.0 callers must confirm the format upgrade and retain a verified backup.
+pub fn save_as_kdbx4(
+    database: &Database,
+    key: DatabaseKey,
+    destination: &mut dyn Write,
+) -> KdbxResult<()> {
+    let mut expected = database.clone();
+    match expected.config.version {
+        DatabaseVersion::KDB3(_) | DatabaseVersion::KDB4(0) => {
+            expected.config.version = DatabaseVersion::KDB4(1)
+        }
+        DatabaseVersion::KDB4(1) => {}
+        _ => return Err(DatabaseSaveError::UnsupportedVersion.into()),
+    }
+    save_and_verify(&expected, &expected, key, destination)
+}
+
+fn save_and_verify(
+    database: &Database,
+    expected: &Database,
+    key: DatabaseKey,
+    destination: &mut dyn Write,
+) -> KdbxResult<()> {
+    let mut encoded = Vec::new();
+    database.save(&mut encoded, key.clone())?;
+    let reopened = open(&encoded, key)?;
+    if !same_persisted_model(expected, &reopened) {
+        return Err(KdbxError::SaveVerificationFailed);
+    }
+    destination.write_all(&encoded)?;
+    Ok(())
+}
+
+fn same_persisted_model(expected: &Database, reopened: &Database) -> bool {
+    if expected.config != reopened.config
+        || expected.meta != reopened.meta
+        || expected.deleted_objects != reopened.deleted_objects
+        || expected.num_groups() != reopened.num_groups()
+        || expected.num_entries() != reopened.num_entries()
+        || expected.num_attachments() != reopened.num_attachments()
+        || expected.num_custom_icons() != reopened.num_custom_icons()
+    {
+        return false;
+    }
+
+    expected.iter_all_groups().all(|group| {
+        reopened
+            .group(group.id())
+            .is_some_and(|other| *group == *other)
+    }) && expected.iter_all_entries().all(|entry| {
+        reopened
+            .entry(entry.id())
+            .is_some_and(|other| *entry == *other)
+    }) && expected.iter_all_attachments().all(|attachment| {
+        reopened.attachment(attachment.id()).is_some_and(|other| {
+            attachment.data == other.data
+                && attachment.data.is_protected() == other.data.is_protected()
+        })
+    }) && expected.iter_all_custom_icons().all(|icon| {
+        reopened.custom_icon(icon.id()).is_some_and(|other| {
+            icon.name == other.name
+                && icon.last_modification_time == other.last_modification_time
+                && icon.data == other.data
+        })
+    })
 }
 
 fn validate_kdf_limits(bytes: &[u8], limits: KdfLimits) -> KdbxResult<()> {
@@ -739,6 +824,57 @@ mod tests {
 
         let xml = Database::get_xml(&mut encoded.as_slice(), test_key()).unwrap();
         assert!(!String::from_utf8_lossy(&xml).contains("secret-value"));
+    }
+
+    #[test]
+    fn converts_kdbx3_to_kdbx4_and_verifies_all_parsed_data() {
+        let key = DatabaseKey::new().with_password("demopass");
+        let database = open(
+            include_bytes!("../tests/fixtures/kdbx3_aes_kdf_aes_cipher.bin"),
+            key.clone(),
+        )
+        .unwrap();
+        assert!(matches!(database.config.version, DatabaseVersion::KDB3(_)));
+        let mut expected = database.clone();
+        expected.config.version = DatabaseVersion::KDB4(1);
+
+        let mut encoded = Vec::new();
+        save_as_kdbx4(&database, key.clone(), &mut encoded).unwrap();
+
+        let version = Database::get_version(&mut encoded.as_slice()).unwrap();
+        assert!(matches!(version, DatabaseVersion::KDB4(_)));
+        let reopened = open(&encoded, key).unwrap();
+        assert_eq!(reopened, expected);
+    }
+
+    #[test]
+    fn rejects_implicit_kdbx3_save() {
+        let key = DatabaseKey::new().with_password("demopass");
+        let database = open(
+            include_bytes!("../tests/fixtures/kdbx3_aes_kdf_aes_cipher.bin"),
+            key.clone(),
+        )
+        .unwrap();
+        let mut encoded = Vec::new();
+        assert!(matches!(
+            save_kdbx4(&database, key, &mut encoded),
+            Err(KdbxError::Save(DatabaseSaveError::UnsupportedVersion))
+        ));
+        assert!(encoded.is_empty());
+    }
+
+    #[test]
+    fn rejects_unrecognized_kdbx4_versions_without_downgrading() {
+        let key = DatabaseKey::new().with_password("test");
+        let mut database = sample_database();
+        database.config.version = DatabaseVersion::KDB4(2);
+        let mut encoded = Vec::new();
+
+        assert!(matches!(
+            save_kdbx4(&database, key, &mut encoded),
+            Err(KdbxError::Save(DatabaseSaveError::UnsupportedVersion))
+        ));
+        assert!(encoded.is_empty());
     }
 
     #[test]
