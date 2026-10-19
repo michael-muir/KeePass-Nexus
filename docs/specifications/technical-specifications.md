@@ -230,6 +230,8 @@ flowchart LR
 - Before derivation, the facade limits file-supplied KDF work by default: Argon2 memory to 256 MiB, iterations to 50, memory-times-iterations to 4 GiB-byte-passes, parallelism to 4 lanes, and AES-KDF to 100 million rounds. `open_with_kdf_limits` allows callers to override these limits for trusted files.
 - The dependency describes KDBX 4 writing as experimental. Do not consider writing production-ready until KeePass and KeePassXC fixture interoperability, fuzzing, and independent security review are complete.
 - Automated checks cover opening reference KDBX 3.1 and KDBX 4/4.1 fixtures (AES-KDF, Argon2, Argon2id, AES, and ChaCha20), re-encoding a reference KDBX 4.1 database, encrypted round-trip, wrong-password rejection, and tamper rejection. KeePassXC application-level validation is still required; self-round-trip coverage alone does not establish interoperability.
+- The writer reopens each generated KDBX file and compares the decoded model before returning bytes to the desktop client. Existing-file saves first create and byte-verify `<database>.nexus-backup`; the prior file remains available for rollback if replacement fails. Saves are refused if the source file changed or disappeared outside the application.
+- KDBX 3 files are readable but are not written in place. Saving one requires explicit user confirmation to convert to KDBX 4.1; KDBX 4.0 files similarly require confirmation to upgrade to KDBX 4.1. In both cases, the verified recovery backup must be in place before replacement. Format-specific data beyond the parsed model still requires the external KeePassXC interoperability checks below.
 - The selected dependency requires Rust 1.89 or newer.
 - Keep the exact dependency version and Cargo lockfile under review for security updates and reproducible builds.
 
@@ -259,6 +261,29 @@ flowchart LR
 - The Flutter/Rust boundary represents expiry as an RFC 3339 timestamp in UTC. KDBX stores timestamps without timezone information or sub-second precision, so the Rust layer converts to/from UTC naive timestamps at second precision.
 - When no expiry time is present, the editor initializes its date/time picker with the current local date and time. Presets for hours, days, and weeks add exact durations from selection; month/year presets use calendar arithmetic and clamp to the final valid day of the target month.
 - The editor keeps Notes in the same KDBX entry and exposes it with the entry's tags and expiration status in details.
+
+### 6.10 KDBX Compatibility Matrix
+
+The current Windows client uses the `keepass` Rust crate pinned to 0.15.2.
+“Tested” means automated open/serialization/reopen checks in this repository;
+it does not imply an independent KeePassXC application test.
+
+| Format / KDF / cipher | Open | Save / conversion | Automated evidence |
+|---|---|---|---|
+| KDBX 3.0, AES-KDF, AES | Tested | Explicitly converts to KDBX 4.1 after backup and confirmation | KeePassXC `Format300.kdbx` fixture |
+| KDBX 3.1, AES-KDF, AES | Tested | Explicitly converts to KDBX 4.1 after backup and confirmation | `keepass-rs` reference fixture |
+| KDBX 4.0, AES | Tested | Explicitly upgrades to KDBX 4.1 after backup and confirmation | KeePassXC `Format400.kdbx` fixture with custom attributes and attachment |
+| KDBX 4.1, Argon2, AES | Tested | Tested | `keepass-rs` reference fixture |
+| KDBX 4.1, Argon2id, ChaCha20 | Tested | Tested | `keepass-rs` reference fixture |
+| KDBX 4.1, AES-KDF, AES | Tested | Tested | `keepass-rs` reference fixture |
+| KeePass 1 / KDB, KDBX 2, unsupported KDF/cipher combinations | Not established | Not supported by the current KDBX 4 writer | Must be rejected or added to a separate verified compatibility scope |
+
+The KeePassXC fixtures are pinned in `rust_core/kdbx/tests/fixtures/README.md`.
+The KDBX 4 writer still requires testing by opening Nexus-generated files in
+the supported KeePassXC application before a production-compatibility claim.
+Self-verification catches malformed output and model loss represented by the
+Rust database object model, but it cannot detect fields the parser itself does
+not understand or preserve.
 
 ---
 

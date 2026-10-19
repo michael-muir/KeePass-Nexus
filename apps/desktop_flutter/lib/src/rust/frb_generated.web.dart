@@ -66,7 +66,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_box_autoadd_u_32(dynamic raw);
 
   @protected
+  CustomField dco_decode_custom_field(dynamic raw);
+
+  @protected
+  EntryAttachment dco_decode_entry_attachment(dynamic raw);
+
+  @protected
   EntryDetails dco_decode_entry_details(dynamic raw);
+
+  @protected
+  EntryHistoryItem dco_decode_entry_history_item(dynamic raw);
 
   @protected
   EntryInput dco_decode_entry_input(dynamic raw);
@@ -82,6 +91,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<CustomField> dco_decode_list_custom_field(dynamic raw);
+
+  @protected
+  List<EntryAttachment> dco_decode_list_entry_attachment(dynamic raw);
+
+  @protected
+  List<EntryHistoryItem> dco_decode_list_entry_history_item(dynamic raw);
 
   @protected
   List<EntrySummary> dco_decode_list_entry_summary(dynamic raw);
@@ -162,7 +180,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
+  CustomField sse_decode_custom_field(SseDeserializer deserializer);
+
+  @protected
+  EntryAttachment sse_decode_entry_attachment(SseDeserializer deserializer);
+
+  @protected
   EntryDetails sse_decode_entry_details(SseDeserializer deserializer);
+
+  @protected
+  EntryHistoryItem sse_decode_entry_history_item(SseDeserializer deserializer);
 
   @protected
   EntryInput sse_decode_entry_input(SseDeserializer deserializer);
@@ -178,6 +205,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<CustomField> sse_decode_list_custom_field(SseDeserializer deserializer);
+
+  @protected
+  List<EntryAttachment> sse_decode_list_entry_attachment(
+      SseDeserializer deserializer);
+
+  @protected
+  List<EntryHistoryItem> sse_decode_list_entry_history_item(
+      SseDeserializer deserializer);
 
   @protected
   List<EntrySummary> sse_decode_list_entry_summary(
@@ -264,7 +302,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_custom_field(CustomField self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_entry_attachment(
+      EntryAttachment self, SseSerializer serializer);
+
+  @protected
   void sse_encode_entry_details(EntryDetails self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_entry_history_item(
+      EntryHistoryItem self, SseSerializer serializer);
 
   @protected
   void sse_encode_entry_input(EntryInput self, SseSerializer serializer);
@@ -280,6 +329,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_custom_field(
+      List<CustomField> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_entry_attachment(
+      List<EntryAttachment> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_entry_history_item(
+      List<EntryHistoryItem> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_entry_summary(

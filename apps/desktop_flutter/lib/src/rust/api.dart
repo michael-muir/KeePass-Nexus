@@ -6,9 +6,9 @@
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `build_group_node`, `build_key`, `entry_summary`, `format_expiry`, `parse_entry_id`, `parse_expiry`, `parse_group_id`, `set_entry_fields`, `validate_entry_input`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
-// These functions are ignored (category: IgnoreBecauseNotAllowedOwner): `set_entry_metadata`, `set_entry_metadata`, `set_icon`, `set_icon`, `set_plain`, `set_plain`, `set_secret`, `set_secret`
+// These functions are ignored because they are not marked as `pub`: `build_group_node`, `build_key`, `ensure_recycle_bin`, `entry_summary`, `format_expiry`, `is_favorite`, `is_group_within_recycle_bin`, `is_standard_field`, `parse_entry_id`, `parse_expiry`, `parse_group_id`, `set_entry_fields`, `set_favorite`, `validate_entry_input`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored (category: IgnoreBecauseNotAllowedOwner): `set_entry_metadata`, `set_entry_metadata`, `set_extended_fields`, `set_extended_fields`, `set_icon`, `set_icon`, `set_plain`, `set_plain`, `set_secret`, `set_secret`
 
 Future<VaultSession> openVault(
         {required List<int> bytes, String? password, Uint8List? keyFile}) =>
@@ -26,9 +26,20 @@ Future<EntryDetails> readEntry(
         {required VaultSession session, required String id}) =>
     RustLib.instance.api.crateApiReadEntry(session: session, id: id);
 
+Future<List<EntryHistoryItem>> entryHistory(
+        {required VaultSession session, required String id}) =>
+    RustLib.instance.api.crateApiEntryHistory(session: session, id: id);
+
 Future<List<EntrySummary>> searchEntries(
         {required VaultSession session, required String query}) =>
     RustLib.instance.api.crateApiSearchEntries(session: session, query: query);
+
+Future<List<EntrySummary>> entriesByTag(
+        {required VaultSession session, required String tag}) =>
+    RustLib.instance.api.crateApiEntriesByTag(session: session, tag: tag);
+
+Future<List<EntrySummary>> favoriteEntries({required VaultSession session}) =>
+    RustLib.instance.api.crateApiFavoriteEntries(session: session);
 
 Future<String> createGroup(
         {required VaultSession session,
@@ -37,12 +48,42 @@ Future<String> createGroup(
     RustLib.instance.api
         .crateApiCreateGroup(session: session, parentId: parentId, name: name);
 
+Future<void> renameGroup(
+        {required VaultSession session,
+        required String id,
+        required String name}) =>
+    RustLib.instance.api
+        .crateApiRenameGroup(session: session, id: id, name: name);
+
+Future<void> moveGroup(
+        {required VaultSession session,
+        required String id,
+        required String parentId}) =>
+    RustLib.instance.api
+        .crateApiMoveGroup(session: session, id: id, parentId: parentId);
+
+Future<void> deleteGroup({required VaultSession session, required String id}) =>
+    RustLib.instance.api.crateApiDeleteGroup(session: session, id: id);
+
+Future<void> restoreGroup(
+        {required VaultSession session, required String id}) =>
+    RustLib.instance.api.crateApiRestoreGroup(session: session, id: id);
+
+Future<void> permanentlyDeleteGroup(
+        {required VaultSession session, required String id}) =>
+    RustLib.instance.api
+        .crateApiPermanentlyDeleteGroup(session: session, id: id);
+
 Future<String> createEntry(
         {required VaultSession session,
         required String groupId,
         required EntryInput input}) =>
     RustLib.instance.api
         .crateApiCreateEntry(session: session, groupId: groupId, input: input);
+
+Future<String> cloneEntry(
+        {required VaultSession session, required String id}) =>
+    RustLib.instance.api.crateApiCloneEntry(session: session, id: id);
 
 Future<void> updateEntry(
         {required VaultSession session,
@@ -61,8 +102,34 @@ Future<void> moveEntry(
 Future<void> deleteEntry({required VaultSession session, required String id}) =>
     RustLib.instance.api.crateApiDeleteEntry(session: session, id: id);
 
-Future<Uint8List> saveVault({required VaultSession session}) =>
-    RustLib.instance.api.crateApiSaveVault(session: session);
+Future<void> permanentlyDeleteEntry(
+        {required VaultSession session, required String id}) =>
+    RustLib.instance.api
+        .crateApiPermanentlyDeleteEntry(session: session, id: id);
+
+Future<void> restoreEntry(
+        {required VaultSession session, required String id}) =>
+    RustLib.instance.api.crateApiRestoreEntry(session: session, id: id);
+
+Future<void> setEntryFavorite(
+        {required VaultSession session,
+        required String id,
+        required bool favorite}) =>
+    RustLib.instance.api
+        .crateApiSetEntryFavorite(session: session, id: id, favorite: favorite);
+
+Future<void> restoreEntryHistory(
+        {required VaultSession session,
+        required String id,
+        required BigInt historyIndex}) =>
+    RustLib.instance.api.crateApiRestoreEntryHistory(
+        session: session, id: id, historyIndex: historyIndex);
+
+Future<Uint8List> saveVault(
+        {required VaultSession session,
+        required bool allowKdbxFormatUpgrade}) =>
+    RustLib.instance.api.crateApiSaveVault(
+        session: session, allowKdbxFormatUpgrade: allowKdbxFormatUpgrade);
 
 Future<void> markVaultSaved({required VaultSession session}) =>
     RustLib.instance.api.crateApiMarkVaultSaved(session: session);
@@ -74,11 +141,61 @@ abstract class EntryFieldSetter {
   Future<void> setEntryMetadata(
       {required List<String> tags, required bool expires, DateTime? expiresAt});
 
+  Future<void> setExtendedFields(
+      {required List<CustomField> fields,
+      required List<EntryAttachment> attachments,
+      required bool favorite});
+
   Future<void> setIcon({int? iconId, required List<int> iconData});
 
   Future<void> setPlain({required String key, required String value});
 
   Future<void> setSecret({required String key, required String value});
+}
+
+class CustomField {
+  final String name;
+  final String value;
+  final bool protected;
+
+  const CustomField({
+    required this.name,
+    required this.value,
+    required this.protected,
+  });
+
+  @override
+  int get hashCode => name.hashCode ^ value.hashCode ^ protected.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CustomField &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          value == other.value &&
+          protected == other.protected;
+}
+
+class EntryAttachment {
+  final String name;
+  final Uint8List data;
+
+  const EntryAttachment({
+    required this.name,
+    required this.data,
+  });
+
+  @override
+  int get hashCode => name.hashCode ^ data.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EntryAttachment &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          data == other.data;
 }
 
 class EntryDetails {
@@ -92,8 +209,12 @@ class EntryDetails {
   final int? iconId;
   final Uint8List iconData;
   final List<String> tags;
+  final bool favorite;
   final bool expires;
   final String? expiresAt;
+  final List<CustomField> customFields;
+  final List<EntryAttachment> attachments;
+  final BigInt historyCount;
 
   const EntryDetails({
     required this.id,
@@ -106,8 +227,12 @@ class EntryDetails {
     this.iconId,
     required this.iconData,
     required this.tags,
+    required this.favorite,
     required this.expires,
     this.expiresAt,
+    required this.customFields,
+    required this.attachments,
+    required this.historyCount,
   });
 
   @override
@@ -122,8 +247,12 @@ class EntryDetails {
       iconId.hashCode ^
       iconData.hashCode ^
       tags.hashCode ^
+      favorite.hashCode ^
       expires.hashCode ^
-      expiresAt.hashCode;
+      expiresAt.hashCode ^
+      customFields.hashCode ^
+      attachments.hashCode ^
+      historyCount.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -140,8 +269,40 @@ class EntryDetails {
           iconId == other.iconId &&
           iconData == other.iconData &&
           tags == other.tags &&
+          favorite == other.favorite &&
           expires == other.expires &&
-          expiresAt == other.expiresAt;
+          expiresAt == other.expiresAt &&
+          customFields == other.customFields &&
+          attachments == other.attachments &&
+          historyCount == other.historyCount;
+}
+
+class EntryHistoryItem {
+  final BigInt index;
+  final String title;
+  final String username;
+  final String? modifiedAt;
+
+  const EntryHistoryItem({
+    required this.index,
+    required this.title,
+    required this.username,
+    this.modifiedAt,
+  });
+
+  @override
+  int get hashCode =>
+      index.hashCode ^ title.hashCode ^ username.hashCode ^ modifiedAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EntryHistoryItem &&
+          runtimeType == other.runtimeType &&
+          index == other.index &&
+          title == other.title &&
+          username == other.username &&
+          modifiedAt == other.modifiedAt;
 }
 
 class EntryInput {
@@ -153,8 +314,11 @@ class EntryInput {
   final int? iconId;
   final Uint8List iconData;
   final List<String> tags;
+  final bool favorite;
   final bool expires;
   final String? expiresAt;
+  final List<CustomField> customFields;
+  final List<EntryAttachment> attachments;
 
   const EntryInput({
     required this.title,
@@ -165,8 +329,11 @@ class EntryInput {
     this.iconId,
     required this.iconData,
     required this.tags,
+    required this.favorite,
     required this.expires,
     this.expiresAt,
+    required this.customFields,
+    required this.attachments,
   });
 
   @override
@@ -179,8 +346,11 @@ class EntryInput {
       iconId.hashCode ^
       iconData.hashCode ^
       tags.hashCode ^
+      favorite.hashCode ^
       expires.hashCode ^
-      expiresAt.hashCode;
+      expiresAt.hashCode ^
+      customFields.hashCode ^
+      attachments.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -195,8 +365,11 @@ class EntryInput {
           iconId == other.iconId &&
           iconData == other.iconData &&
           tags == other.tags &&
+          favorite == other.favorite &&
           expires == other.expires &&
-          expiresAt == other.expiresAt;
+          expiresAt == other.expiresAt &&
+          customFields == other.customFields &&
+          attachments == other.attachments;
 }
 
 class EntrySummary {
@@ -209,8 +382,10 @@ class EntrySummary {
   final int? iconId;
   final Uint8List iconData;
   final List<String> tags;
+  final bool favorite;
   final bool expires;
   final String? expiresAt;
+  final String? modifiedAt;
 
   const EntrySummary({
     required this.id,
@@ -222,8 +397,10 @@ class EntrySummary {
     this.iconId,
     required this.iconData,
     required this.tags,
+    required this.favorite,
     required this.expires,
     this.expiresAt,
+    this.modifiedAt,
   });
 
   @override
@@ -237,8 +414,10 @@ class EntrySummary {
       iconId.hashCode ^
       iconData.hashCode ^
       tags.hashCode ^
+      favorite.hashCode ^
       expires.hashCode ^
-      expiresAt.hashCode;
+      expiresAt.hashCode ^
+      modifiedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -254,26 +433,37 @@ class EntrySummary {
           iconId == other.iconId &&
           iconData == other.iconData &&
           tags == other.tags &&
+          favorite == other.favorite &&
           expires == other.expires &&
-          expiresAt == other.expiresAt;
+          expiresAt == other.expiresAt &&
+          modifiedAt == other.modifiedAt;
 }
 
 class GroupNode {
   final String id;
   final String name;
+  final bool isRecycleBin;
+  final bool parentIsRecycleBin;
   final List<GroupNode> groups;
   final List<EntrySummary> entries;
 
   const GroupNode({
     required this.id,
     required this.name,
+    required this.isRecycleBin,
+    required this.parentIsRecycleBin,
     required this.groups,
     required this.entries,
   });
 
   @override
   int get hashCode =>
-      id.hashCode ^ name.hashCode ^ groups.hashCode ^ entries.hashCode;
+      id.hashCode ^
+      name.hashCode ^
+      isRecycleBin.hashCode ^
+      parentIsRecycleBin.hashCode ^
+      groups.hashCode ^
+      entries.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -282,6 +472,8 @@ class GroupNode {
           runtimeType == other.runtimeType &&
           id == other.id &&
           name == other.name &&
+          isRecycleBin == other.isRecycleBin &&
+          parentIsRecycleBin == other.parentIsRecycleBin &&
           groups == other.groups &&
           entries == other.entries;
 }

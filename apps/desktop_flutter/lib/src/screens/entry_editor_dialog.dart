@@ -20,6 +20,24 @@ class _ExpirationPreset {
   final _ExpirationUnit unit;
 }
 
+class _CustomFieldDraft {
+  _CustomFieldDraft({
+    String name = '',
+    String value = '',
+    this.protected = false,
+  })  : name = TextEditingController(text: name),
+        value = TextEditingController(text: value);
+
+  final TextEditingController name;
+  final TextEditingController value;
+  bool protected;
+
+  void dispose() {
+    name.dispose();
+    value.dispose();
+  }
+}
+
 const _expirationPresets = [
   _ExpirationPreset('12 hours', 12, _ExpirationUnit.hours),
   _ExpirationPreset('24 hours', 24, _ExpirationUnit.hours),
@@ -54,8 +72,12 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
   late final TextEditingController _notes;
   late final TextEditingController _tags;
   final _formKey = GlobalKey<FormState>();
+  final List<_CustomFieldDraft> _customFields = [];
+  final List<EntryAttachment> _attachments = [];
+  final Set<String> _existingAttachmentNames = {};
   bool _showPassword = false;
   bool _loadingFavicon = false;
+  bool _favorite = false;
   int _selectedSection = 0;
   int? _builtinIconId;
   Uint8List? _customIcon;
@@ -72,6 +94,18 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
     _url = TextEditingController(text: initial?.url ?? '');
     _notes = TextEditingController(text: initial?.notes ?? '');
     _tags = TextEditingController(text: initial?.tags.join(' ') ?? '');
+    _favorite = initial?.favorite ?? false;
+    for (final field in initial?.customFields ?? const <CustomField>[]) {
+      _customFields.add(_CustomFieldDraft(
+        name: field.name,
+        value: field.value,
+        protected: field.protected,
+      ));
+    }
+    _attachments.addAll(initial?.attachments ?? const <EntryAttachment>[]);
+    _existingAttachmentNames.addAll(
+      _attachments.map((attachment) => attachment.name.toLowerCase()),
+    );
     _expires = initial?.expires ?? false;
     _expiresAt = DateTime.tryParse(initial?.expiresAt ?? '')?.toLocal() ??
         DateTime.now();
@@ -90,6 +124,9 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
     _url.dispose();
     _notes.dispose();
     _tags.dispose();
+    for (final field in _customFields) {
+      field.dispose();
+    }
     super.dispose();
   }
 
@@ -110,10 +147,20 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
             .split(RegExp(r'\s+'))
             .where((tag) => tag.isNotEmpty)
             .toList(),
+        favorite: _favorite,
         expires: _expires,
         expiresAt: _expiresAt.toUtc().toIso8601String(),
         iconId: _customIcon == null ? _builtinIconId : null,
         iconData: _customIcon ?? Uint8List(0),
+        customFields: _customFields
+            .where((field) => field.name.text.trim().isNotEmpty)
+            .map((field) => CustomField(
+                  name: field.name.text.trim(),
+                  value: field.value.text,
+                  protected: field.protected,
+                ))
+            .toList(),
+        attachments: _attachments,
       ),
     );
   }
@@ -214,11 +261,40 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
       if (data == null) {
         throw const FormatException('The selected icon could not be read.');
       }
+
       final normalized = await _normalizeIcon(Uint8List.fromList(data));
       if (mounted) setState(() => _setCustomIcon(normalized));
     } on Exception catch (error) {
       _showIconError('Unable to use that image: $error');
     }
+  }
+
+  Future<void> _pickAttachment() async {
+    final selection = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+      withData: true,
+    );
+    if (selection == null || selection.files.isEmpty) return;
+    final file = selection.files.single;
+    final bytes = file.bytes ??
+        (file.path == null ? null : await File(file.path!).readAsBytes());
+    if (bytes == null) {
+      _showIconError('The selected attachment could not be read.');
+      return;
+    }
+    if (bytes.length > 25 * 1024 * 1024) {
+      _showIconError('Attachments must be 25 MB or smaller.');
+      return;
+    }
+    if (_attachments.any(
+      (attachment) => attachment.name.toLowerCase() == file.name.toLowerCase(),
+    )) {
+      _showIconError('An attachment with that filename already exists.');
+      return;
+    }
+    setState(() => _attachments.add(
+          EntryAttachment(name: file.name, data: Uint8List.fromList(bytes)),
+        ));
   }
 
   Future<void> _downloadFavicon() async {
@@ -424,7 +500,11 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
     return Dialog(
       child: SizedBox(
         width: screen.width < 880 ? screen.width - 40 : 840,
-        height: screen.height < 680 ? screen.height - 40 : 640,
+        height: screen.height < 680
+            ? screen.height - 40
+            : screen.height > 900
+                ? 820
+                : 640,
         child: Column(
           children: [
             Padding(
@@ -463,6 +543,11 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
                           label: 'Icon',
                           icon: Icons.insert_emoticon_outlined,
                         ),
+                        _sectionButton(
+                          index: 2,
+                          label: 'Advanced',
+                          icon: Icons.tune_outlined,
+                        ),
                       ],
                     ),
                   ),
@@ -473,6 +558,7 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
                       children: [
                         _entryFields(),
                         _iconPicker(),
+                        _advancedFields(),
                       ],
                     ),
                   ),
@@ -631,6 +717,13 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
                 prefixIcon: Icon(Icons.sell_outlined),
               ),
             ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Favorite'),
+              secondary: const Icon(Icons.star_outline),
+              value: _favorite,
+              onChanged: (value) => setState(() => _favorite = value),
+            ),
             const SizedBox(height: 12),
             _expirationFields(),
             const SizedBox(height: 12),
@@ -647,6 +740,122 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _advancedFields() {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Custom fields',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => setState(() {
+                _customFields.add(_CustomFieldDraft());
+              }),
+              icon: const Icon(Icons.add),
+              label: const Text('Add field'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_customFields.isEmpty)
+          Text(
+            'Add KeePass-compatible custom fields for this entry.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        for (var index = 0; index < _customFields.length; index++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _customFields[index].name,
+                    decoration: const InputDecoration(labelText: 'Field name'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: TextField(
+                    controller: _customFields[index].value,
+                    obscureText: _customFields[index].protected,
+                    decoration: const InputDecoration(labelText: 'Value'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Protect value in the database',
+                  child: Checkbox(
+                    value: _customFields[index].protected,
+                    onChanged: (value) => setState(
+                      () => _customFields[index].protected = value ?? false,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Remove custom field',
+                  onPressed: () => setState(
+                    () => _customFields.removeAt(index).dispose(),
+                  ),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+        const Divider(height: 32),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Attachments',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: _pickAttachment,
+              icon: const Icon(Icons.attach_file),
+              label: const Text('Add file'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_attachments.isEmpty)
+          Text(
+            'Files are encrypted inside this database.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        for (var index = 0; index < _attachments.length; index++)
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.insert_drive_file_outlined),
+            title: Text(_attachments[index].name),
+            subtitle: Text(
+              '${_attachments[index].data.length} bytes',
+            ),
+            trailing: _existingAttachmentNames
+                    .contains(_attachments[index].name.toLowerCase())
+                ? const Tooltip(
+                    message:
+                        'Existing attachments cannot be removed while keeping entry history.',
+                    child: Icon(Icons.lock_outline),
+                  )
+                : IconButton(
+                    tooltip: 'Remove attachment',
+                    onPressed: () =>
+                        setState(() => _attachments.removeAt(index)),
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+          ),
+      ],
     );
   }
 
