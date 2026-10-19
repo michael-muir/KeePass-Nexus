@@ -881,6 +881,19 @@ class _EntryDetailsPanelState extends State<_EntryDetailsPanel> {
               ),
             ),
             _DetailField(label: 'URL', value: details.url),
+            if (details.tags.isNotEmpty)
+              _DetailField(label: 'TAGS', value: details.tags.join(' ')),
+            if (details.expires || details.expiresAt != null)
+              _DetailField(
+                label: 'EXPIRES',
+                value: details.expiresAt == null
+                    ? (details.expires ? 'Enabled' : 'Disabled')
+                    : _formatEntryExpiry(
+                        context,
+                        details.expiresAt!,
+                        enabled: details.expires,
+                      ),
+              ),
             _DetailField(label: 'NOTES', value: details.notes),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -893,6 +906,18 @@ class _EntryDetailsPanelState extends State<_EntryDetailsPanel> {
       },
     );
   }
+}
+
+String _formatEntryExpiry(
+  BuildContext context,
+  String timestamp, {
+  required bool enabled,
+}) {
+  final expiry = DateTime.tryParse(timestamp);
+  if (expiry == null) return timestamp;
+  final localizations = MaterialLocalizations.of(context);
+  return '${enabled ? '' : 'Disabled · '}${localizations.formatMediumDate(expiry.toLocal())} · '
+      '${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(expiry.toLocal()))}';
 }
 
 Widget _entryIcon(

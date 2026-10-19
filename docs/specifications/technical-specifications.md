@@ -253,6 +253,13 @@ flowchart LR
 - Custom image inputs are limited to 1 MiB and normalized to a maximum 256-by-256 image. The Rust bridge independently enforces the KDBX custom-icon byte limit and validates built-in icon IDs.
 - Entry summaries and details expose icon metadata to Flutter for rendering in the entry list and details pane. No app-specific icon data is stored outside the KDBX database.
 
+### 6.9 Entry Tags and Expiration
+- Tags use the native KDBX entry `Tags` collection. The editor accepts tags separated by whitespace and searches entries by tag.
+- Entry expiration uses the native KDBX `Times/Expires` and `Times/ExpiryTime` metadata; toggling expiration off preserves the selected expiration timestamp while disabling expiry.
+- The Flutter/Rust boundary represents expiry as an RFC 3339 timestamp in UTC. KDBX stores timestamps without timezone information or sub-second precision, so the Rust layer converts to/from UTC naive timestamps at second precision.
+- When no expiry time is present, the editor initializes its date/time picker with the current local date and time. Presets for hours, days, and weeks add exact durations from selection; month/year presets use calendar arithmetic and clamp to the final valid day of the target month.
+- The editor keeps Notes in the same KDBX entry and exposes it with the entry's tags and expiration status in details.
+
 ---
 
 ## 7. Security Requirements

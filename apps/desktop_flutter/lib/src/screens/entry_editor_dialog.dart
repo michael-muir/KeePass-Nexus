@@ -10,6 +10,33 @@ import 'package:keeppass_nexus/src/screens/password_generator_dialog.dart';
 
 const _maxIconBytes = 1024 * 1024;
 
+enum _ExpirationUnit { hours, days, weeks, months, years }
+
+class _ExpirationPreset {
+  const _ExpirationPreset(this.label, this.amount, this.unit);
+
+  final String label;
+  final int amount;
+  final _ExpirationUnit unit;
+}
+
+const _expirationPresets = [
+  _ExpirationPreset('12 hours', 12, _ExpirationUnit.hours),
+  _ExpirationPreset('24 hours', 24, _ExpirationUnit.hours),
+  _ExpirationPreset('1 week', 1, _ExpirationUnit.weeks),
+  _ExpirationPreset('2 weeks', 2, _ExpirationUnit.weeks),
+  _ExpirationPreset('3 weeks', 3, _ExpirationUnit.weeks),
+  _ExpirationPreset('1 month', 1, _ExpirationUnit.months),
+  _ExpirationPreset('2 months', 2, _ExpirationUnit.months),
+  _ExpirationPreset('3 months', 3, _ExpirationUnit.months),
+  _ExpirationPreset('4 months', 4, _ExpirationUnit.months),
+  _ExpirationPreset('5 months', 5, _ExpirationUnit.months),
+  _ExpirationPreset('6 months', 6, _ExpirationUnit.months),
+  _ExpirationPreset('1 year', 1, _ExpirationUnit.years),
+  _ExpirationPreset('2 years', 2, _ExpirationUnit.years),
+  _ExpirationPreset('3 years', 3, _ExpirationUnit.years),
+];
+
 class EntryEditorDialog extends StatefulWidget {
   const EntryEditorDialog({this.initial, super.key});
 
@@ -25,12 +52,15 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
   late final TextEditingController _password;
   late final TextEditingController _url;
   late final TextEditingController _notes;
+  late final TextEditingController _tags;
   final _formKey = GlobalKey<FormState>();
   bool _showPassword = false;
   bool _loadingFavicon = false;
   int _selectedSection = 0;
   int? _builtinIconId;
   Uint8List? _customIcon;
+  bool _expires = false;
+  late DateTime _expiresAt;
 
   @override
   void initState() {
@@ -41,6 +71,10 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
     _password = TextEditingController(text: initial?.password ?? '');
     _url = TextEditingController(text: initial?.url ?? '');
     _notes = TextEditingController(text: initial?.notes ?? '');
+    _tags = TextEditingController(text: initial?.tags.join(' ') ?? '');
+    _expires = initial?.expires ?? false;
+    _expiresAt = DateTime.tryParse(initial?.expiresAt ?? '')?.toLocal() ??
+        DateTime.now();
     if (initial != null && initial.iconData.isNotEmpty) {
       _customIcon = Uint8List.fromList(initial.iconData);
     } else {
@@ -55,6 +89,7 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
     _password.dispose();
     _url.dispose();
     _notes.dispose();
+    _tags.dispose();
     super.dispose();
   }
 
@@ -70,6 +105,13 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
         password: _password.text,
         url: _url.text.trim(),
         notes: _notes.text,
+        tags: _tags.text
+            .trim()
+            .split(RegExp(r'\s+'))
+            .where((tag) => tag.isNotEmpty)
+            .toList(),
+        expires: _expires,
+        expiresAt: _expiresAt.toUtc().toIso8601String(),
         iconId: _customIcon == null ? _builtinIconId : null,
         iconData: _customIcon ?? Uint8List(0),
       ),
@@ -84,6 +126,69 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
     if (password != null && mounted) {
       setState(() => _password.text = password);
     }
+  }
+
+  Future<void> _selectExpiry() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _expiresAt,
+      firstDate: DateTime(1900),
+      lastDate: DateTime(9999, 12, 31),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_expiresAt),
+    );
+    if (time == null || !mounted) return;
+    setState(() {
+      _expiresAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  void _applyExpiryPreset(_ExpirationPreset preset) {
+    final now = DateTime.now();
+    setState(() {
+      _expires = true;
+      _expiresAt = switch (preset.unit) {
+        _ExpirationUnit.hours => now.add(Duration(hours: preset.amount)),
+        _ExpirationUnit.days => now.add(Duration(days: preset.amount)),
+        _ExpirationUnit.weeks => now.add(Duration(days: preset.amount * 7)),
+        _ExpirationUnit.months => _addCalendarMonths(now, preset.amount),
+        _ExpirationUnit.years => _addCalendarMonths(now, preset.amount * 12),
+      };
+    });
+  }
+
+  DateTime _addCalendarMonths(DateTime date, int months) {
+    final firstOfMonth = DateTime(
+      date.year,
+      date.month + months,
+      1,
+      date.hour,
+      date.minute,
+      date.second,
+    );
+    final lastDay = DateTime(
+      firstOfMonth.year,
+      firstOfMonth.month + 1,
+      0,
+    ).day;
+    final day = date.day > lastDay ? lastDay : date.day;
+    return DateTime(
+      firstOfMonth.year,
+      firstOfMonth.month,
+      day,
+      date.hour,
+      date.minute,
+      date.second,
+    );
   }
 
   Future<void> _pickCustomIcon() async {
@@ -519,6 +624,17 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
             ),
             const SizedBox(height: 12),
             TextFormField(
+              controller: _tags,
+              decoration: const InputDecoration(
+                labelText: 'Tags',
+                hintText: 'Separate tags with spaces',
+                prefixIcon: Icon(Icons.sell_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _expirationFields(),
+            const SizedBox(height: 12),
+            TextFormField(
               controller: _notes,
               minLines: 3,
               maxLines: 6,
@@ -531,6 +647,84 @@ class _EntryEditorDialogState extends State<EntryEditorDialog> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _expirationFields() {
+    final theme = Theme.of(context);
+    final localizations = MaterialLocalizations.of(context);
+    final formattedExpiry = '${localizations.formatMediumDate(_expiresAt)} · '
+        '${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(_expiresAt))}';
+    final menuItems = <DropdownMenuItem<_ExpirationPreset?>>[];
+    for (var index = 0; index < _expirationPresets.length; index++) {
+      final preset = _expirationPresets[index];
+      menuItems.add(
+        DropdownMenuItem(
+          value: preset,
+          child: Text(preset.label),
+        ),
+      );
+      if (index == 1 || index == 4 || index == 10) {
+        menuItems.add(
+          const DropdownMenuItem<_ExpirationPreset?>(
+            value: null,
+            enabled: false,
+            child: Divider(height: 1),
+          ),
+        );
+      }
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Expires'),
+          value: _expires,
+          controlAffinity: ListTileControlAffinity.leading,
+          onChanged: (value) => setState(() => _expires = value ?? false),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _expires ? _selectExpiry : null,
+                icon: const Icon(Icons.calendar_month_outlined),
+                label: Text(
+                  formattedExpiry,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 155,
+              child: DropdownButtonFormField<_ExpirationPreset?>(
+                initialValue: null,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Presets',
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+                hint: Text(
+                  'Choose',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                items: menuItems,
+                onChanged: _expires
+                    ? (preset) {
+                        if (preset != null) _applyExpiryPreset(preset);
+                      }
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

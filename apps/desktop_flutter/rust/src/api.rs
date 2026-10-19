@@ -1,5 +1,6 @@
 use std::io::Cursor;
 
+use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use kdbx::{fields, DatabaseKey, EntryId, EntryMut, EntryTrack, GroupId, Icon, KdbxDatabase};
 use uuid::Uuid;
 use zeroize::Zeroize;
@@ -39,6 +40,9 @@ pub struct EntrySummary {
     pub notes: String,
     pub icon_id: Option<u32>,
     pub icon_data: Vec<u8>,
+    pub tags: Vec<String>,
+    pub expires: bool,
+    pub expires_at: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -52,6 +56,9 @@ pub struct EntryDetails {
     pub notes: String,
     pub icon_id: Option<u32>,
     pub icon_data: Vec<u8>,
+    pub tags: Vec<String>,
+    pub expires: bool,
+    pub expires_at: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -63,6 +70,9 @@ pub struct EntryInput {
     pub notes: String,
     pub icon_id: Option<u32>,
     pub icon_data: Vec<u8>,
+    pub tags: Vec<String>,
+    pub expires: bool,
+    pub expires_at: Option<String>,
 }
 
 pub fn open_vault(
@@ -129,6 +139,9 @@ pub fn read_entry(session: &VaultSession, id: String) -> Result<EntryDetails, St
             .custom_icon()
             .map(|icon| icon.data.clone())
             .unwrap_or_default(),
+        tags: entry.tags.clone(),
+        expires: entry.times.expires.unwrap_or(false),
+        expires_at: format_expiry(entry.times.expiry),
     })
 }
 
@@ -149,6 +162,7 @@ pub fn search_entries(session: &VaultSession, query: String) -> Result<Vec<Entry
                 &summary.username,
                 &summary.url,
                 &summary.notes,
+                &summary.tags.join(" "),
             ]
             .iter()
             .any(|value| value.to_lowercase().contains(&query))
@@ -177,10 +191,11 @@ pub fn create_entry(
     input: EntryInput,
 ) -> Result<String, String> {
     validate_entry_input(&input)?;
+    let expiry = parse_expiry(input.expires_at.as_deref())?;
     let group_id = parse_group_id(&group_id)?;
     let id = session
         .database
-        .create_entry(group_id, |entry| set_entry_fields(entry, input))
+        .create_entry(group_id, |entry| set_entry_fields(entry, input, expiry))
         .map_err(|error| error.to_string())?;
     session.dirty = true;
     Ok(id.to_string())
@@ -192,10 +207,11 @@ pub fn update_entry(
     input: EntryInput,
 ) -> Result<(), String> {
     validate_entry_input(&input)?;
+    let expiry = parse_expiry(input.expires_at.as_deref())?;
     let id = parse_entry_id(&id)?;
     session
         .database
-        .update_entry(id, |entry| set_entry_fields(entry, input))
+        .update_entry(id, |entry| set_entry_fields(entry, input, expiry))
         .map_err(|error| error.to_string())?;
     session.dirty = true;
     Ok(())
@@ -292,7 +308,27 @@ fn entry_summary(entry: kdbx::EntryRef<'_>) -> EntrySummary {
             .custom_icon()
             .map(|icon| icon.data.clone())
             .unwrap_or_default(),
+        tags: entry.tags.clone(),
+        expires: entry.times.expires.unwrap_or(false),
+        expires_at: format_expiry(entry.times.expiry),
     }
+}
+
+fn parse_expiry(value: Option<&str>) -> Result<Option<NaiveDateTime>, String> {
+    value
+        .map(|value| {
+            DateTime::parse_from_rfc3339(value)
+                .map(|timestamp| timestamp.with_timezone(&Utc).naive_utc())
+                .map_err(|error| format!("Invalid expiration timestamp: {error}"))
+        })
+        .transpose()
+}
+
+fn format_expiry(value: Option<NaiveDateTime>) -> Option<String> {
+    value.map(|timestamp| {
+        DateTime::<Utc>::from_naive_utc_and_offset(timestamp, Utc)
+            .to_rfc3339_opts(SecondsFormat::Secs, true)
+    })
 }
 
 fn validate_entry_input(input: &EntryInput) -> Result<(), String> {
@@ -311,6 +347,12 @@ trait EntryFieldSetter {
     fn set_plain(&mut self, key: &str, value: String);
     fn set_secret(&mut self, key: &str, value: String);
     fn set_icon(&mut self, icon_id: Option<u32>, icon_data: Vec<u8>);
+    fn set_entry_metadata(
+        &mut self,
+        tags: Vec<String>,
+        expires: bool,
+        expires_at: Option<NaiveDateTime>,
+    );
 }
 
 impl EntryFieldSetter for EntryMut<'_> {
@@ -330,6 +372,17 @@ impl EntryFieldSetter for EntryMut<'_> {
         } else {
             self.set_icon_none();
         }
+    }
+
+    fn set_entry_metadata(
+        &mut self,
+        tags: Vec<String>,
+        expires: bool,
+        expires_at: Option<NaiveDateTime>,
+    ) {
+        self.tags = tags;
+        self.times.expires = Some(expires);
+        self.times.expiry = expires_at;
     }
 }
 
@@ -351,15 +404,31 @@ impl EntryFieldSetter for EntryTrack<'_> {
             self.set_icon_none();
         }
     }
+
+    fn set_entry_metadata(
+        &mut self,
+        tags: Vec<String>,
+        expires: bool,
+        expires_at: Option<NaiveDateTime>,
+    ) {
+        self.tags = tags;
+        self.times.expires = Some(expires);
+        self.times.expiry = expires_at;
+    }
 }
 
-fn set_entry_fields(entry: &mut impl EntryFieldSetter, input: EntryInput) {
+fn set_entry_fields(
+    entry: &mut impl EntryFieldSetter,
+    input: EntryInput,
+    expiry: Option<NaiveDateTime>,
+) {
     entry.set_plain(fields::TITLE, input.title);
     entry.set_plain(fields::USERNAME, input.username);
     entry.set_secret(fields::PASSWORD, input.password);
     entry.set_plain(fields::URL, input.url);
     entry.set_plain(fields::NOTES, input.notes);
     entry.set_icon(input.icon_id, input.icon_data);
+    entry.set_entry_metadata(input.tags, input.expires, expiry);
 }
 
 #[cfg(test)]
@@ -382,6 +451,9 @@ mod tests {
                 notes: "Test account".to_string(),
                 icon_id: Some(1),
                 icon_data: Vec::new(),
+                tags: vec!["account".to_string(), "personal".to_string()],
+                expires: true,
+                expires_at: Some("2030-01-15T12:30:00Z".to_string()),
             },
         )
         .unwrap();
@@ -389,6 +461,9 @@ mod tests {
         let created = read_entry(&session, entry_id.clone()).unwrap();
         assert_eq!(created.password, "secret");
         assert_eq!(created.icon_id, Some(1));
+        assert_eq!(created.tags, vec!["account", "personal"]);
+        assert!(created.expires);
+        assert_eq!(created.expires_at.as_deref(), Some("2030-01-15T12:30:00Z"));
         update_entry(
             &mut session,
             entry_id.clone(),
@@ -400,17 +475,24 @@ mod tests {
                 notes: "Updated account".to_string(),
                 icon_id: None,
                 icon_data: vec![137, 80, 78, 71],
+                tags: vec!["work".to_string()],
+                expires: false,
+                expires_at: Some("2031-02-16T13:45:00Z".to_string()),
             },
         )
         .unwrap();
         let updated = read_entry(&session, entry_id.clone()).unwrap();
         assert_eq!(updated.icon_id, None);
         assert_eq!(updated.icon_data, vec![137, 80, 78, 71]);
+        assert_eq!(updated.tags, vec!["work"]);
+        assert!(!updated.expires);
+        assert_eq!(updated.expires_at.as_deref(), Some("2031-02-16T13:45:00Z"));
 
-        let search_results = search_entries(&session, "account".to_string()).unwrap();
+        let search_results = search_entries(&session, "work".to_string()).unwrap();
         assert_eq!(search_results.len(), 1);
         assert_eq!(search_results[0].icon_id, None);
         assert_eq!(search_results[0].icon_data, vec![137, 80, 78, 71]);
+        assert_eq!(search_results[0].tags, vec!["work"]);
         assert!(search_entries(&session, "secret".to_string())
             .unwrap()
             .is_empty());
@@ -428,6 +510,9 @@ mod tests {
         assert_eq!(entry.password, "updated-secret");
         assert_eq!(entry.icon_id, None);
         assert_eq!(entry.icon_data, vec![137, 80, 78, 71]);
+        assert_eq!(entry.tags, vec!["work"]);
+        assert!(!entry.expires);
+        assert_eq!(entry.expires_at.as_deref(), Some("2031-02-16T13:45:00Z"));
 
         let archive_group_id = create_group(&mut session, root_id, "Archive".to_string()).unwrap();
         move_entry(&mut session, entry_id.clone(), archive_group_id.clone()).unwrap();
@@ -456,6 +541,9 @@ mod tests {
             notes: String::new(),
             icon_id: None,
             icon_data: vec![0; MAX_CUSTOM_ICON_BYTES + 1],
+            tags: Vec::new(),
+            expires: false,
+            expires_at: None,
         };
         assert!(validate_entry_input(&oversized).is_err());
 
@@ -465,5 +553,15 @@ mod tests {
             ..oversized
         };
         assert!(validate_entry_input(&invalid_builtin).is_err());
+    }
+
+    #[test]
+    fn expiry_timestamps_require_rfc3339_and_are_normalized_to_utc() {
+        let parsed = parse_expiry(Some("2031-02-16T15:45:00-02:00")).unwrap();
+        assert_eq!(
+            format_expiry(parsed).as_deref(),
+            Some("2031-02-16T17:45:00Z")
+        );
+        assert!(parse_expiry(Some("not a timestamp")).is_err());
     }
 }

@@ -6,9 +6,9 @@
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `build_group_node`, `build_key`, `entry_summary`, `parse_entry_id`, `parse_group_id`, `set_entry_fields`, `validate_entry_input`
+// These functions are ignored because they are not marked as `pub`: `build_group_node`, `build_key`, `entry_summary`, `format_expiry`, `parse_entry_id`, `parse_expiry`, `parse_group_id`, `set_entry_fields`, `validate_entry_input`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
-// These functions are ignored (category: IgnoreBecauseNotAllowedOwner): `set_icon`, `set_icon`, `set_plain`, `set_plain`, `set_secret`, `set_secret`
+// These functions are ignored (category: IgnoreBecauseNotAllowedOwner): `set_entry_metadata`, `set_entry_metadata`, `set_icon`, `set_icon`, `set_plain`, `set_plain`, `set_secret`, `set_secret`
 
 Future<VaultSession> openVault(
         {required List<int> bytes, String? password, Uint8List? keyFile}) =>
@@ -71,6 +71,9 @@ Future<void> markVaultSaved({required VaultSession session}) =>
 abstract class VaultSession implements RustOpaqueInterface {}
 
 abstract class EntryFieldSetter {
+  Future<void> setEntryMetadata(
+      {required List<String> tags, required bool expires, DateTime? expiresAt});
+
   Future<void> setIcon({int? iconId, required List<int> iconData});
 
   Future<void> setPlain({required String key, required String value});
@@ -88,6 +91,9 @@ class EntryDetails {
   final String notes;
   final int? iconId;
   final Uint8List iconData;
+  final List<String> tags;
+  final bool expires;
+  final String? expiresAt;
 
   const EntryDetails({
     required this.id,
@@ -99,6 +105,9 @@ class EntryDetails {
     required this.notes,
     this.iconId,
     required this.iconData,
+    required this.tags,
+    required this.expires,
+    this.expiresAt,
   });
 
   @override
@@ -111,7 +120,10 @@ class EntryDetails {
       url.hashCode ^
       notes.hashCode ^
       iconId.hashCode ^
-      iconData.hashCode;
+      iconData.hashCode ^
+      tags.hashCode ^
+      expires.hashCode ^
+      expiresAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -126,7 +138,10 @@ class EntryDetails {
           url == other.url &&
           notes == other.notes &&
           iconId == other.iconId &&
-          iconData == other.iconData;
+          iconData == other.iconData &&
+          tags == other.tags &&
+          expires == other.expires &&
+          expiresAt == other.expiresAt;
 }
 
 class EntryInput {
@@ -137,6 +152,9 @@ class EntryInput {
   final String notes;
   final int? iconId;
   final Uint8List iconData;
+  final List<String> tags;
+  final bool expires;
+  final String? expiresAt;
 
   const EntryInput({
     required this.title,
@@ -146,6 +164,9 @@ class EntryInput {
     required this.notes,
     this.iconId,
     required this.iconData,
+    required this.tags,
+    required this.expires,
+    this.expiresAt,
   });
 
   @override
@@ -156,7 +177,10 @@ class EntryInput {
       url.hashCode ^
       notes.hashCode ^
       iconId.hashCode ^
-      iconData.hashCode;
+      iconData.hashCode ^
+      tags.hashCode ^
+      expires.hashCode ^
+      expiresAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -169,7 +193,10 @@ class EntryInput {
           url == other.url &&
           notes == other.notes &&
           iconId == other.iconId &&
-          iconData == other.iconData;
+          iconData == other.iconData &&
+          tags == other.tags &&
+          expires == other.expires &&
+          expiresAt == other.expiresAt;
 }
 
 class EntrySummary {
@@ -181,6 +208,9 @@ class EntrySummary {
   final String notes;
   final int? iconId;
   final Uint8List iconData;
+  final List<String> tags;
+  final bool expires;
+  final String? expiresAt;
 
   const EntrySummary({
     required this.id,
@@ -191,6 +221,9 @@ class EntrySummary {
     required this.notes,
     this.iconId,
     required this.iconData,
+    required this.tags,
+    required this.expires,
+    this.expiresAt,
   });
 
   @override
@@ -202,7 +235,10 @@ class EntrySummary {
       url.hashCode ^
       notes.hashCode ^
       iconId.hashCode ^
-      iconData.hashCode;
+      iconData.hashCode ^
+      tags.hashCode ^
+      expires.hashCode ^
+      expiresAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -216,7 +252,10 @@ class EntrySummary {
           url == other.url &&
           notes == other.notes &&
           iconId == other.iconId &&
-          iconData == other.iconData;
+          iconData == other.iconData &&
+          tags == other.tags &&
+          expires == other.expires &&
+          expiresAt == other.expiresAt;
 }
 
 class GroupNode {

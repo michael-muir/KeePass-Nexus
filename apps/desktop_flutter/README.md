@@ -39,7 +39,10 @@ clear actions. Passwords are generated with Dart's secure random source. The
 entry editor also supports KeePass built-in icons, uploaded custom icons, and
 favicon downloads from the URL's standard favicon paths. Icons are embedded in
 the KDBX database and shown in the entry list and details pane. The
-Windows runner requests exclusion from supported screen-capture APIs using
+entry editor stores whitespace-separated tags and native KDBX expiration
+metadata, with date/time selection and relative presets. Expiry timestamps use
+UTC at the precision supported by KDBX. Notes remain part of the entry form.
+The Windows runner requests exclusion from supported screen-capture APIs using
 [`SetWindowDisplayAffinity`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowdisplayaffinity);
 Windows documents this as best effort, and it does not prevent external cameras
 or guarantee protection from every capture path. Other platforms do not yet

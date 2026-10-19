@@ -151,7 +151,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(groupId, serializer);
         sse_encode_box_autoadd_entry_input(input, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 4, port: port_);
+            funcId: 5, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_String,
@@ -181,7 +181,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(parentId, serializer);
         sse_encode_String(name, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 5, port: port_);
+            funcId: 6, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_String,
@@ -207,7 +207,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(name, serializer);
         sse_encode_String(password, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 6, port: port_);
+            funcId: 7, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData:
@@ -235,7 +235,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             session, serializer);
         sse_encode_String(id, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 7, port: port_);
+            funcId: 8, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -260,7 +260,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
             session, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 8, port: port_);
+            funcId: 9, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -290,7 +290,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(id, serializer);
         sse_encode_String(groupId, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 9, port: port_);
+            funcId: 10, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -317,7 +317,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_opt_String(password, serializer);
         sse_encode_opt_list_prim_u_8_strict(keyFile, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 10, port: port_);
+            funcId: 11, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData:
@@ -345,7 +345,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             session, serializer);
         sse_encode_String(id, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 11, port: port_);
+            funcId: 12, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_entry_details,
@@ -370,7 +370,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
             session, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 12, port: port_);
+            funcId: 13, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_list_prim_u_8_strict,
@@ -397,7 +397,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             session, serializer);
         sse_encode_String(query, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 13, port: port_);
+            funcId: 14, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_list_entry_summary,
@@ -427,7 +427,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(id, serializer);
         sse_encode_box_autoadd_entry_input(input, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 14, port: port_);
+            funcId: 15, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_unit,
@@ -452,7 +452,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
             session, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 15, port: port_);
+            funcId: 16, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_vault_snapshot,
@@ -502,6 +502,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DateTime dco_decode_Chrono_NaiveDateTime(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeTimestamp(ts: dco_decode_i_64(raw).toInt(), isUtc: true);
+  }
+
+  @protected
   VaultSession
       dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
           dynamic raw) {
@@ -528,6 +534,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DateTime dco_decode_box_autoadd_Chrono_NaiveDateTime(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_Chrono_NaiveDateTime(raw);
+  }
+
+  @protected
   EntryInput dco_decode_box_autoadd_entry_input(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_entry_input(raw);
@@ -543,8 +555,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   EntryDetails dco_decode_entry_details(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 9)
-      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return EntryDetails(
       id: dco_decode_String(arr[0]),
       groupId: dco_decode_String(arr[1]),
@@ -555,6 +567,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       notes: dco_decode_String(arr[6]),
       iconId: dco_decode_opt_box_autoadd_u_32(arr[7]),
       iconData: dco_decode_list_prim_u_8_strict(arr[8]),
+      tags: dco_decode_list_String(arr[9]),
+      expires: dco_decode_bool(arr[10]),
+      expiresAt: dco_decode_opt_String(arr[11]),
     );
   }
 
@@ -562,8 +577,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   EntryInput dco_decode_entry_input(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return EntryInput(
       title: dco_decode_String(arr[0]),
       username: dco_decode_String(arr[1]),
@@ -572,6 +587,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       notes: dco_decode_String(arr[4]),
       iconId: dco_decode_opt_box_autoadd_u_32(arr[5]),
       iconData: dco_decode_list_prim_u_8_strict(arr[6]),
+      tags: dco_decode_list_String(arr[7]),
+      expires: dco_decode_bool(arr[8]),
+      expiresAt: dco_decode_opt_String(arr[9]),
     );
   }
 
@@ -579,8 +597,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   EntrySummary dco_decode_entry_summary(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return EntrySummary(
       id: dco_decode_String(arr[0]),
       groupId: dco_decode_String(arr[1]),
@@ -590,6 +608,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       notes: dco_decode_String(arr[5]),
       iconId: dco_decode_opt_box_autoadd_u_32(arr[6]),
       iconData: dco_decode_list_prim_u_8_strict(arr[7]),
+      tags: dco_decode_list_String(arr[8]),
+      expires: dco_decode_bool(arr[9]),
+      expiresAt: dco_decode_opt_String(arr[10]),
     );
   }
 
@@ -605,6 +626,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       groups: dco_decode_list_group_node(arr[2]),
       entries: dco_decode_list_entry_summary(arr[3]),
     );
+  }
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeI64(raw);
+  }
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
   }
 
   @protected
@@ -635,6 +668,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
+  DateTime? dco_decode_opt_box_autoadd_Chrono_NaiveDateTime(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_Chrono_NaiveDateTime(raw);
   }
 
   @protected
@@ -716,6 +757,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DateTime sse_decode_Chrono_NaiveDateTime(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_64(deserializer);
+    return DateTime.fromMicrosecondsSinceEpoch(inner.toInt(), isUtc: true);
+  }
+
+  @protected
   VaultSession
       sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
           SseDeserializer deserializer) {
@@ -735,6 +783,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
+  }
+
+  @protected
+  DateTime sse_decode_box_autoadd_Chrono_NaiveDateTime(
+      SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_Chrono_NaiveDateTime(deserializer));
   }
 
   @protected
@@ -761,6 +816,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_notes = sse_decode_String(deserializer);
     var var_iconId = sse_decode_opt_box_autoadd_u_32(deserializer);
     var var_iconData = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_tags = sse_decode_list_String(deserializer);
+    var var_expires = sse_decode_bool(deserializer);
+    var var_expiresAt = sse_decode_opt_String(deserializer);
     return EntryDetails(
         id: var_id,
         groupId: var_groupId,
@@ -770,7 +828,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         url: var_url,
         notes: var_notes,
         iconId: var_iconId,
-        iconData: var_iconData);
+        iconData: var_iconData,
+        tags: var_tags,
+        expires: var_expires,
+        expiresAt: var_expiresAt);
   }
 
   @protected
@@ -783,6 +844,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_notes = sse_decode_String(deserializer);
     var var_iconId = sse_decode_opt_box_autoadd_u_32(deserializer);
     var var_iconData = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_tags = sse_decode_list_String(deserializer);
+    var var_expires = sse_decode_bool(deserializer);
+    var var_expiresAt = sse_decode_opt_String(deserializer);
     return EntryInput(
         title: var_title,
         username: var_username,
@@ -790,7 +854,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         url: var_url,
         notes: var_notes,
         iconId: var_iconId,
-        iconData: var_iconData);
+        iconData: var_iconData,
+        tags: var_tags,
+        expires: var_expires,
+        expiresAt: var_expiresAt);
   }
 
   @protected
@@ -804,6 +871,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_notes = sse_decode_String(deserializer);
     var var_iconId = sse_decode_opt_box_autoadd_u_32(deserializer);
     var var_iconData = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_tags = sse_decode_list_String(deserializer);
+    var var_expires = sse_decode_bool(deserializer);
+    var var_expiresAt = sse_decode_opt_String(deserializer);
     return EntrySummary(
         id: var_id,
         groupId: var_groupId,
@@ -812,7 +882,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         url: var_url,
         notes: var_notes,
         iconId: var_iconId,
-        iconData: var_iconData);
+        iconData: var_iconData,
+        tags: var_tags,
+        expires: var_expires,
+        expiresAt: var_expiresAt);
   }
 
   @protected
@@ -824,6 +897,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_entries = sse_decode_list_entry_summary(deserializer);
     return GroupNode(
         id: var_id, name: var_name, groups: var_groups, entries: var_entries);
+  }
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -871,6 +962,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  DateTime? sse_decode_opt_box_autoadd_Chrono_NaiveDateTime(
+      SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_Chrono_NaiveDateTime(deserializer));
     } else {
       return null;
     }
@@ -974,6 +1077,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_Chrono_NaiveDateTime(
+      DateTime self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(
+        PlatformInt64Util.from(self.microsecondsSinceEpoch), serializer);
+  }
+
+  @protected
   void
       sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVaultSession(
           VaultSession self, SseSerializer serializer) {
@@ -993,6 +1104,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_bool(bool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self ? 1 : 0);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_Chrono_NaiveDateTime(
+      DateTime self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_Chrono_NaiveDateTime(self, serializer);
   }
 
   @protected
@@ -1020,6 +1138,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.notes, serializer);
     sse_encode_opt_box_autoadd_u_32(self.iconId, serializer);
     sse_encode_list_prim_u_8_strict(self.iconData, serializer);
+    sse_encode_list_String(self.tags, serializer);
+    sse_encode_bool(self.expires, serializer);
+    sse_encode_opt_String(self.expiresAt, serializer);
   }
 
   @protected
@@ -1032,6 +1153,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.notes, serializer);
     sse_encode_opt_box_autoadd_u_32(self.iconId, serializer);
     sse_encode_list_prim_u_8_strict(self.iconData, serializer);
+    sse_encode_list_String(self.tags, serializer);
+    sse_encode_bool(self.expires, serializer);
+    sse_encode_opt_String(self.expiresAt, serializer);
   }
 
   @protected
@@ -1045,6 +1169,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.notes, serializer);
     sse_encode_opt_box_autoadd_u_32(self.iconId, serializer);
     sse_encode_list_prim_u_8_strict(self.iconData, serializer);
+    sse_encode_list_String(self.tags, serializer);
+    sse_encode_bool(self.expires, serializer);
+    sse_encode_opt_String(self.expiresAt, serializer);
   }
 
   @protected
@@ -1054,6 +1181,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.name, serializer);
     sse_encode_list_group_node(self.groups, serializer);
     sse_encode_list_entry_summary(self.entries, serializer);
+  }
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
   }
 
   @protected
@@ -1100,6 +1242,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_String(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_Chrono_NaiveDateTime(
+      DateTime? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_Chrono_NaiveDateTime(self, serializer);
     }
   }
 
